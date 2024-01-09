@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts",
+    "**/*.java",
+    "**/*.class",
+    "**/*.py",
+    "**/*.cpp",
+    "**/*.exe",
+    "compilation"
+  ]
+}
