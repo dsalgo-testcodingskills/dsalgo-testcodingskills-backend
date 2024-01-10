@@ -1,6 +1,6 @@
 # DsALgo TestCodingSkills Backend
 
-This repository contains the Backend Server for the DsALgo TestCodingSkills application
+This repository contains the codebase for the dsalgo-testcodingskills-backend of the dsalgo-testcodingskills organisation.
 
 ### Prerequisites
 
