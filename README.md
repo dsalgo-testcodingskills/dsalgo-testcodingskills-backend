@@ -1,4 +1,4 @@
-# DsALgo TestCodingSkills Backend
+# DSALgo TestCodingSkills Backend
 
 This repository contains the codebase for the dsalgo-testcodingskills-backend of the dsalgo-testcodingskills organisation.
 
@@ -14,7 +14,7 @@ This repository contains the codebase for the dsalgo-testcodingskills-backend of
 
     ```bash
     $ git clone https://github.com/dsalgo-testcodingskills/dsalgo-testcodingskills-backend.git
-    $ cd dsalgo-testcodingskills
+    $ cd dsalgo-testcodingskills-backend
     ```
 
 2. Install dependencies:
