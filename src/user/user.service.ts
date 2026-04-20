@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import { UserDocument } from 'src/user/entities/user.entity';
 
 var generator = require('generate-password');
@@ -21,7 +21,7 @@ export class UserService {
       strict: true,
     });
   }
-  dbSession() {
+  dbSession(): Promise<ClientSession> {
     return this.userModel.db.startSession();
   }
 

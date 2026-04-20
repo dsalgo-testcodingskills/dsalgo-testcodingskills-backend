@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { PaymentDocument } from './SCHEMA/payment.schema';
 import { SubscriptionDocument } from './SCHEMA/subscription.schema';
 import { OrganizationDocument } from 'src/auth/schema/organization.schema';
@@ -23,7 +23,7 @@ export class RazorPayPaymentService {
     private readonly userModel: Model<UserDocument>,
   ) {}
 
-  dbSession() {
+  dbSession(): Promise<ClientSession> {
     return this.subscriptionModel.db.startSession();
   }
 

@@ -1,0 +1,84 @@
+name: Backend - Deploy to Google Cloud Run
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  REGION: ${{ secrets.REGION }}
+  PROJECT_ID: ${{ secrets.PROJECT_ID }}
+  REPO: ${{ secrets.ARTIFACT_REPOSITORY_NAME }}
+  IMAGE: ${{ secrets.IMAGE_NAME }}
+  SERVICE_NAME: ${{ secrets.SERVICE_NAME }}
+
+jobs:
+  deploy:
+    name: Build, Push, and Deploy
+    runs-on: ubuntu-latest
+    environment: prod
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Set Image URI
+        run: |
+          echo "IMAGE_URI=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.IMAGE }}:${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Build Docker Image
+        run: |
+          docker build -t $IMAGE_URI .
+
+      - name: Push Docker Image
+        run: |
+          docker push $IMAGE_URI
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          image: ${{ env.IMAGE_URI }}
+          region: ${{ env.REGION }}
+          flags: "--allow-unauthenticated"
+          env_vars: |
+            MONGO_URL=${{ secrets.MONGO_URL }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            USER_POOL_ID=${{ secrets.USER_POOL_ID }}
+            CLIENT_ID=${{ secrets.CLIENT_ID }}
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_REGION=${{ secrets.AWS_REGION }}
+            TOTAL_TEST_INCREMENT=${{ secrets.TOTAL_TEST_INCREMENT }}
+            TOTAL_USER_INCREMENT=${{ secrets.TOTAL_USER_INCREMENT }}
+            RAZORPAY_SECRET_ID=${{ secrets.RAZORPAY_SECRET_ID }}
+            RAZORPAY_SECRET_KEY=${{ secrets.RAZORPAY_SECRET_KEY }}
+            SENDGRID_KEY=${{ secrets.SENDGRID_KEY }}
+            FROM_EMAIL=${{ secrets.FROM_EMAIL }}
+            MAIL_AUTH_USERNAME=${{ secrets.MAIL_AUTH_USERNAME }}
+            MAIL_AUTH_PASSWORD=${{ secrets.MAIL_AUTH_PASSWORD }}
+            NEW_RELIC_APP_NAME=${{ secrets.NEW_RELIC_APP_NAME }}
+            NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }}
+
+      - name: Show Output URL
+        run: |
+          url=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "Backend deployed at: $url"
