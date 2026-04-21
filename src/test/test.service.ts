@@ -27,7 +27,7 @@ export class TestService {
     private readonly orgmodel: Model<OrganizationDocument>,
   ) {}
   S3 = new AWS.S3({
-    region: 'us-east-2',
+    region: process.env.AWS_REGION || 'us-east-2',
     signatureVersion: 'v4',
   });
 
@@ -49,13 +49,19 @@ export class TestService {
 
   getPresignedUrl(originalURL = '', expireInSec = 300) {
     if (originalURL) {
-      const splitUrl = originalURL.split('algo-user-images/');
+      const bucketName = process.env.AWS_S3_RESOURCE_BUCKET || 'algo-user-images';
+      const bucketIdentifier = `${bucketName}/`;
+      const bucketIndex = originalURL.indexOf(bucketIdentifier);
+
+      if (bucketIndex !== -1) {
+        const key = originalURL.substring(bucketIndex + bucketIdentifier.length);
       const signedUrl = this.S3.getSignedUrl('getObject', {
-        Bucket: `algo-user-images`,
-        Key: splitUrl[splitUrl.length - 1],
+        Bucket: bucketName,
+        Key: key,
         Expires: expireInSec,
       });
       return signedUrl;
+    }
     }
     return '';
   }

@@ -119,7 +119,7 @@ function invitationHTML(link, text, logo) {
                 "
               >
                 <img
-                  src="https://algo-user-images.s3.us-east-2.amazonaws.com/organization/ALGO.jpg"
+                  src="https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/organization/ALGO.jpg"
                   width="120px"
                   height="auto"
                   alt="algo"
@@ -287,7 +287,7 @@ function invitationHTML(link, text, logo) {
               "
             >
               <img
-                src="https://algo-user-images.s3.us-east-2.amazonaws.com/organization/ALGO.jpg"
+                src="https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/organization/ALGO.jpg"
                 width="120px"
                 height="auto"
                 alt="algo"

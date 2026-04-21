@@ -32,7 +32,7 @@ import { UploadFileDto } from './DTO/uploadfile.DTO';
 import { UserService } from 'src/user/user.service';
 
 const S3 = new AWS.S3({
-  region: 'us-east-2',
+  region: process.env.AWS_REGION || 'us-east-2',
   signatureVersion: 'v4',
 });
 @ApiTags('test')
@@ -538,7 +538,7 @@ export class TestController {
     try {
       return new Promise((resolve, reject) => {
         const params = {
-          Bucket: 'algo-user-images',
+          Bucket: process.env.AWS_S3_RESOURCE_BUCKET || 'algo-user-images',
           Fields: {
             key: body.path,
           },
