@@ -75,6 +75,10 @@ jobs:
             MAIL_AUTH_PASSWORD=${{ secrets.MAIL_AUTH_PASSWORD }}
             NEW_RELIC_APP_NAME=${{ secrets.NEW_RELIC_APP_NAME }}
             NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }}
+            FREE_TESTS=${{ secrets.FREE_TESTS }}
+            FREE_USERS=${{ secrets.FREE_USERS }}
+            FREE_CUSTOM_QUESTIONS=${{ secrets.FREE_CUSTOM_QUESTIONS }}
+            PAID_CUSTOM_QUESTIONS=${{ secrets.PAID_CUSTOM_QUESTIONS }}
 
       - name: Show Output URL
         run: |

@@ -7,6 +7,7 @@ import { OrganizationDocument } from 'src/auth/schema/organization.schema';
 import { InjectRazorpay } from 'nestjs-razorpay';
 import * as crypto from 'crypto';
 import { UserDocument } from 'src/user/entities/user.entity';
+import { PLAN_LIMITS } from 'src/common/plan-limits';
 
 @Injectable()
 export class RazorPayPaymentService {
@@ -39,8 +40,8 @@ export class RazorPayPaymentService {
             },
             {
               $inc: {
-                availableTests: Number(process.env.TOTAL_TEST_INCREMENT),
-                noOfUsers: Number(process.env.TOTAL_USER_INCREMENT),
+                availableTests: PLAN_LIMITS.paid.tests,
+                noOfUsers: PLAN_LIMITS.paid.users,
               },
               $set: { subscriptionPlan: 'paid' },
             },
@@ -62,8 +63,8 @@ export class RazorPayPaymentService {
             },
             {
               $inc: {
-                availableTests: Number(process.env.TOTAL_TEST_INCREMENT),
-                noOfUsers: Number(process.env.TOTAL_USER_INCREMENT),
+                availableTests: PLAN_LIMITS.paid.tests,
+                noOfUsers: PLAN_LIMITS.paid.users,
               },
               $set: { subscriptionPlan: 'paid' },
             },
@@ -186,8 +187,8 @@ export class RazorPayPaymentService {
       },
       {
         $set: {
-          availableTests: 20,
-          noOfUsers: 3,
+          availableTests: PLAN_LIMITS.free.tests,
+          noOfUsers: PLAN_LIMITS.free.users,
           subscriptionPlan: 'free',
         },
       },

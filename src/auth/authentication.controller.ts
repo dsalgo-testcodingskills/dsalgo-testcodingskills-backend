@@ -12,6 +12,7 @@ import {
 import { AuthenticationService } from './authentication.service';
 import { UserService } from 'src/user/user.service';
 import { UserRoleEnum } from 'src/common/enum';
+import { PLAN_LIMITS } from 'src/common/plan-limits';
 import { roleConfig } from 'src/utils/role.config';
 
 @ApiTags('Authentication-cognito')
@@ -37,8 +38,8 @@ export class AuthenticationController {
       const org = await this.authenticationService.createOrganisation({
         name: organizationName,
         createdBy: user._id.toString(),
-        availableTests: 20,
-        noOfUsers: 2, // including organization creator
+        availableTests: PLAN_LIMITS.free.tests,
+        noOfUsers: PLAN_LIMITS.free.users, // including organization creator
         subscriptionPlan: 'free',
       });
 

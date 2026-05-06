@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import * as axios from 'axios';
 import { AppService } from './app.service';
+import { PLAN_LIMITS } from './common/plan-limits';
 
 @Controller()
 export class AppController {
@@ -9,6 +10,11 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get('plan-limits')
+  getPlanLimits() {
+    return PLAN_LIMITS;
   }
 
   @Get('door')
