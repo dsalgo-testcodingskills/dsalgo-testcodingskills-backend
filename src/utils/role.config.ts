@@ -20,12 +20,20 @@ interface roleModuleConfigInterF {
 }
 
 interface roleConfigInterF {
+  super_admin: roleModuleConfigInterF;
   admin: roleModuleConfigInterF;
   user: roleModuleConfigInterF;
 }
 
 // users and their defined permissions
 export const roleConfig: roleConfigInterF = {
+  super_admin: {
+    user: true,
+    test: true,
+    payment: true,
+    question: true,
+    compiler: true,
+  },
   admin: {
     user: true,
     test: true,
@@ -96,3 +104,8 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: '/compiler/compileCode', method: 'post' },
   ],
 };
+
+
+export const allowedSuperAdminDomains = [
+  'code-b.dev',
+];

@@ -13,7 +13,7 @@ import { AuthenticationService } from './authentication.service';
 import { UserService } from 'src/user/user.service';
 import { UserRoleEnum } from 'src/common/enum';
 import { PLAN_LIMITS } from 'src/common/plan-limits';
-import { roleConfig } from 'src/utils/role.config';
+import { allowedSuperAdminDomains, roleConfig } from 'src/utils/role.config';
 
 @ApiTags('Authentication-cognito')
 @Controller('authentication')
@@ -26,17 +26,39 @@ export class AuthenticationController {
   @Post('register')
   async register(@Body() body: registerDTO) {
     try {
-      const { organizationName, name, emailId } = body;
+      const { organizationName, name, emailId, role } = body;
+      const organizationNameTrimmed = organizationName.trim();
+      const selectedRole =
+        role === UserRoleEnum.SUPER_ADMIN ? UserRoleEnum.SUPER_ADMIN : UserRoleEnum.ADMIN;
 
+      if (selectedRole === UserRoleEnum.SUPER_ADMIN) {
+        const existingSuperAdmin = await this.userService.getUser({
+          role: UserRoleEnum.SUPER_ADMIN,
+        });
+       // only one super admin allowed to do signup via this API(via frontend), other super admins have to be created via invitation as super_admin(check database for existing super admin users before allowing signup with super admin role)
+        if (existingSuperAdmin) {
+          throw new Error('Super admin already exists');
+        }
+          if (!emailId || !emailId.includes('@')) {
+        throw new Error('Invalid email format');
+      }
+
+      const emailDomain = emailId.toLowerCase().split('@')[1];
+      const normalizedAllowedDomains = allowedSuperAdminDomains.map(d => d.toLowerCase());
+      if (!normalizedAllowedDomains.includes(emailDomain)) {
+        throw new Error('Email domain not allowed for super admin role');
+      }
+
+      }
       const user = await this.userService.createUser({
         name,
         emailId,
-        role: UserRoleEnum.ADMIN,
+        role: selectedRole,
         temporaryPasswordChanged: true,
       });
 
       const org = await this.authenticationService.createOrganisation({
-        name: organizationName,
+        name: organizationNameTrimmed,
         createdBy: user._id.toString(),
         availableTests: PLAN_LIMITS.free.tests,
         noOfUsers: PLAN_LIMITS.free.users, // including organization creator
@@ -48,7 +70,7 @@ export class AuthenticationController {
           body,
           org._id.toString(),
           user._id.toString(),
-          UserRoleEnum.ADMIN,
+          selectedRole,
         )
         .catch(async (err) => {
           await this.authenticationService.deleteOrganisation(

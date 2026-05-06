@@ -8,7 +8,11 @@ export type OrganizationDocument = Organization & Document;
   timestamps: true,
 })
 export class Organization {
-  @Prop()
+  @Prop({
+    unique: true,
+    required: true,
+    trim: true,
+  })
   name: string;
   @Prop({
     type: mongoose.Schema.Types.ObjectId,

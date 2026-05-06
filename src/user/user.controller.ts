@@ -5,7 +5,7 @@ import {
   Post,
   UseGuards,
   Req,
-  Patch,
+  Patch
 } from '@nestjs/common';
 import { TestService } from 'src/test/test.service';
 import { UserService } from './user.service';
@@ -19,6 +19,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 import { UserRoleEnum, UserStatusEnum } from 'src/common/enum';
 import { Types } from 'mongoose';
+import { allowedSuperAdminDomains } from 'src/utils/role.config';
 
 @Controller('user')
 export class UserController {
@@ -59,6 +60,46 @@ export class UserController {
     try {
       const { name, emailId } = body;
       const userOrgId = request.payload['custom:orgId'];
+      const currentUserRole = request.payload['custom:role'];
+
+      if (
+        ![UserRoleEnum.ADMIN, UserRoleEnum.SUPER_ADMIN].includes(
+          currentUserRole,
+        )
+      ) {
+        throw new Error('Only organization admins can invite users',);
+      }
+      if (!emailId || !emailId.includes('@')) {
+        throw new Error('Invalid email format');
+      }
+
+      const emailDomain = emailId.toLowerCase().split('@')[1];
+      const normalizedAllowedDomains = allowedSuperAdminDomains.map(d => d.toLowerCase());
+
+      // restricted domains only SUPER_ADMIN can create users
+      if (
+        normalizedAllowedDomains.includes(emailDomain) &&
+        currentUserRole !== UserRoleEnum.SUPER_ADMIN
+      ) {
+        throw new Error('Only super admins can create users with this domain',);
+      }
+
+      // SUPER_ADMIN role must use allowed domain
+      if (
+        body.role === UserRoleEnum.SUPER_ADMIN &&
+        !normalizedAllowedDomains.includes(emailDomain)
+      ) {
+        throw new Error('Email domain not allowed for super admin role',);
+      }
+
+      // Only SUPER_ADMIN can create SUPER_ADMIN
+      if (
+        body.role === UserRoleEnum.SUPER_ADMIN &&
+        currentUserRole !== UserRoleEnum.SUPER_ADMIN
+      ) {
+        throw new Error('Only super admins can create super admin users',);
+      }
+
       let userData = null;
 
       const orgDetails = await this.authenticationService.getOrganisation({

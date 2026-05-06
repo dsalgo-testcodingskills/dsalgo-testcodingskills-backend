@@ -102,13 +102,12 @@ export class AuthGuard implements CanActivate {
   ): Promise<any> => {
     try {
       const role = validatedData.payload['custom:role'];
-      if (['admin'].includes(role)) {
-        return validatedData;
-      } else if (['user'].includes(role)) {
-        // will have user permissions such as {dashboard:true}
-        const APIpermissions = roleConfig;
+      const APIpermissions = roleConfig;
 
-        // API which is requested
+      if (!APIpermissions[role]) {
+        throw new UnauthorizedException('You are not allowed');
+      }
+
         let apiToFind = requestMeta.url;
         const methodToFind = requestMeta.method;
         const paramsList = Object.keys(requestMeta.params);
@@ -158,9 +157,6 @@ export class AuthGuard implements CanActivate {
           throw new UnauthorizedException('not permitted');
         }
         return validatedData;
-      } else {
-        throw new UnauthorizedException('You are not allowed');
-      }
     } catch (error) {
       throw new UnauthorizedException(error.message);
     }
