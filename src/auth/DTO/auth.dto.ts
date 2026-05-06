@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsOptional } from 'class-validator';
 export class registerDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
@@ -13,6 +13,9 @@ export class registerDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   password: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  role?: string;
 }
 export class authenticationdata {
   @ApiProperty({ required: true })
