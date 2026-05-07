@@ -39,7 +39,10 @@ export class QuestionsController {
   ) {}
 
   @Post('getQuestion')
-  getQuestions(@Body() body: getQuestionsDTO) {
+  getQuestions(@Body() body: getQuestionsDTO, @Req() request) {
+    if (request?.payload && request.payload['custom:orgId']) {
+      body.organizationId = new Types.ObjectId(request.payload['custom:orgId']);
+    }
     return this.questionsService.getQuestions(body);
   }
 
@@ -181,12 +184,14 @@ export class QuestionsController {
   @Patch('/updateCustomQuestion/:id')
   async update(@Param('id') id: string, @Body() body: any, @Req() request) {
     try {
-      if (
-        request.payload.organizationId !== body.organizationId &&
-        body.public === true
-      ) {
+      const existingQuestion = await this.questionsService.findById(id);
+      if (!existingQuestion) {
+        throw new BadRequestException('Question not found');
+      }
+
+      if (String(existingQuestion.organizationId) !== request.payload['custom:orgId']) {
         throw new BadRequestException(
-          'You cannot edit the public question that is not added by you.',
+          'You cannot edit the question that is not added by you.',
         );
       }
       //Check for each test case whether valid or not

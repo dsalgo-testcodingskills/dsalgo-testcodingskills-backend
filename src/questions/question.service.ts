@@ -18,7 +18,7 @@ export class QuestionsService {
   }
 
   async getQuestions(req?: getQuestionsDTO) {
-    let match = {};
+    let match: any = {};
     if (req?.level) {
       match = { level: req.level };
     }
@@ -29,6 +29,13 @@ export class QuestionsService {
 
     if (req?.questionId !== null && req?.questionId !== undefined) {
       match = { ...match, _id: new mongooseTypes.ObjectId(req.questionId) };
+    }
+
+    if (req?.organizationId) {
+      match = {
+        ...match,
+        $or: [{ organizationId: req.organizationId }, { public: true }],
+      };
     }
     const count = await this.questionModel.find(match).count();
     const limit = req?.limit ? req.limit : count;
