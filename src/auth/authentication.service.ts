@@ -27,6 +27,8 @@ import * as jwkToPem from 'jwk-to-pem';
 import * as jwt from 'jsonwebtoken';
 import * as AWS from 'aws-sdk';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { escapeRegex, extractCompanyFromDomain, extractDomain, normalizeCompanyName } from 'src/common/common.functions';
+import { PUBLIC_DOMAINS } from 'src/common/enum';
 
 @Injectable()
 export class AuthenticationService {
@@ -585,4 +587,61 @@ export class AuthenticationService {
   deleteOrganisation(id) {
     return this.orgModel.findByIdAndDelete(id);
   }
+
+async findExistingOrganization(
+  organizationName: string,
+  emailId: string
+) {
+  const normalizedInput = normalizeCompanyName(organizationName);
+
+  const emailDomain = extractDomain(emailId);
+
+  const isCorporateEmail =
+    emailDomain && !PUBLIC_DOMAINS.includes(emailDomain);
+
+  const domainFromEmail = emailDomain
+    ? extractCompanyFromDomain(emailDomain)
+    : null;
+
+  const normalizedDomainCompany = isCorporateEmail && domainFromEmail
+    ? normalizeCompanyName(domainFromEmail)
+    : null;
+
+  const keyword = organizationName.split(' ')[0];
+
+  const queries = [
+    {
+      name: {
+        $regex: escapeRegex(keyword),
+        $options: 'i',
+      },
+    },
+  ];
+
+  if (domainFromEmail) {
+    queries.push({
+      name: {
+        $regex: escapeRegex(domainFromEmail),
+        $options: 'i',
+      },
+    });
+  }
+
+  const candidates = await this.orgModel
+    .find({ $or: queries })
+    .limit(1000)
+    .lean();
+
+  return (
+    candidates.find((org: { name: string }) => {
+      const normalizedOrg = normalizeCompanyName(org.name);
+
+      return (
+        normalizedOrg === normalizedInput ||
+        (normalizedDomainCompany && normalizedOrg === normalizedDomainCompany)
+      );
+    }) || false
+  );
+}
+
 }

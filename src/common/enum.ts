@@ -13,3 +13,5 @@ export enum SubscriptionTypeEnum {
   Free = 'free',
   PREMIUM = 'premium',
 }
+
+export const PUBLIC_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com'];

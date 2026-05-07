@@ -50,6 +50,15 @@ export class AuthenticationController {
       }
 
       }
+      const existingOrg =
+        await this.authenticationService.findExistingOrganization(
+          organizationNameTrimmed,
+          emailId
+        );
+
+      if (existingOrg) {
+        throw new Error('Organization already exists');
+      }
       const user = await this.userService.createUser({
         name,
         emailId,

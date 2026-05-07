@@ -553,3 +553,24 @@ export function getDatatypeOfParamters(language: string, paramType: string) {
   }
   return dataType;
 }
+
+export function normalizeCompanyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
+
+export function extractDomain(email: string): string | null {
+  const parts = email.split('@');
+  return parts.length === 2 ? parts[1].toLowerCase() : null;
+}
+
+export function extractCompanyFromDomain(domain: string): string {
+  return domain.split('.')[0];
+}
+
+export function escapeRegex(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
