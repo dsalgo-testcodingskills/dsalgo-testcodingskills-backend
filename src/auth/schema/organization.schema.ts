@@ -22,6 +22,8 @@ export class Organization {
   @Prop()
   availableTests: number;
   @Prop()
+  availableCustomQuestions: number;
+  @Prop()
   noOfUsers: number;
   @Prop()
   subscriptionPlan: string;

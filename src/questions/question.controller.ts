@@ -49,10 +49,11 @@ export class QuestionsController {
     @Req() request,
     @Body() body: createCustomQuestionDTO,
   ) {
+    let session = null;
     try {
       let orgId = request.payload['custom:orgId'];
       const org = await this.authenticationService.getOrganisation({
-        _id: request.payload['custom:orgId'],
+        _id: orgId,
       });
       if (org && org.subscriptionPlan === 'free') {
         return {
@@ -60,19 +61,14 @@ export class QuestionsController {
           statusCode: 402,
         };
       }
-      let custQuestionCount = await this.questionsService.customQuestionCount({
-        organizationId: orgId,
-      });
-
-      if (
-        custQuestionCount === org.availableTests &&
-        org.subscriptionPlan === 'paid'
-      )
+      
+      if (org && org.subscriptionPlan === 'paid' && org.availableCustomQuestions <= 0) {
         return {
           message:
             'You have used all Custom Questions, upgrade your plan to create more',
           statusCode: 402,
         };
+      }
 
       //Check for each test case whether valid or not
       let isValid;
@@ -157,16 +153,30 @@ export class QuestionsController {
         },
       ];
 
-      body['organizationId'] = new Types.ObjectId(
-        request.payload['custom:orgId'],
-      );
+      body['organizationId'] = new Types.ObjectId(orgId);
       body['createdBy'] = request.payload.nickname;
-      await this.questionsService.createCustomQuestion(body);
+      session = await this.questionsService.dbSession();
+      await session.withTransaction(async () => {
+        try {
+          await this.questionsService.createCustomQuestion(body, session);
 
-      await this.authenticationService.updateOrganisation(
-        { _id: request.payload['custom:orgId'] },
-        { $inc: { availableTests: -1 } },
-      );
+          const updatedOrg = await this.authenticationService.updateOrganisation(
+            { 
+              _id: new Types.ObjectId(orgId), 
+              subscriptionPlan: 'paid',
+              availableCustomQuestions: { $gt: 0 }
+            },
+            { $inc: { availableCustomQuestions: -1 } },
+            { session }
+          );
+          
+          if (!updatedOrg) {
+            throw new Error('Custom question limit was exhausted during creation. Race condition detected.');
+          }
+        } catch (error) {
+          throw new Error(error);
+        }
+      });
 
       return {
         message: 'Question created successfully',
@@ -174,7 +184,10 @@ export class QuestionsController {
         data: null,
       };
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (session) await session.abortTransaction();
+      throw new BadRequestException(error?.message || error);
+    } finally {
+      if (session) await session.endSession();
     }
   }
 

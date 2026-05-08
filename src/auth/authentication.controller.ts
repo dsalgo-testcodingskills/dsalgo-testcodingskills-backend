@@ -70,6 +70,7 @@ export class AuthenticationController {
         name: organizationNameTrimmed,
         createdBy: user._id.toString(),
         availableTests: PLAN_LIMITS.free.tests,
+        availableCustomQuestions: PLAN_LIMITS.free.customQuestions,
         noOfUsers: PLAN_LIMITS.free.users, // including organization creator
         subscriptionPlan: 'free',
       });

@@ -42,6 +42,7 @@ export class RazorPayPaymentService {
               $inc: {
                 availableTests: PLAN_LIMITS.paid.tests,
                 noOfUsers: PLAN_LIMITS.paid.users,
+                availableCustomQuestions: PLAN_LIMITS.paid.customQuestions,
               },
               $set: { subscriptionPlan: 'paid' },
             },
@@ -65,6 +66,7 @@ export class RazorPayPaymentService {
               $inc: {
                 availableTests: PLAN_LIMITS.paid.tests,
                 noOfUsers: PLAN_LIMITS.paid.users,
+                availableCustomQuestions: PLAN_LIMITS.paid.customQuestions,
               },
               $set: { subscriptionPlan: 'paid' },
             },
@@ -188,6 +190,7 @@ export class RazorPayPaymentService {
       {
         $set: {
           availableTests: PLAN_LIMITS.free.tests,
+          availableCustomQuestions: PLAN_LIMITS.free.customQuestions,
           noOfUsers: PLAN_LIMITS.free.users,
           subscriptionPlan: 'free',
         },

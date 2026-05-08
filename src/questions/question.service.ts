@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types as mongooseTypes } from 'mongoose';
+import { Model, Types as mongooseTypes, ClientSession } from 'mongoose';
 import { createQuestionDTO, getQuestionsDTO } from './DTO/question.dto';
 import { QuestionDocument } from './SCHEMA/question.schema';
 
@@ -10,6 +10,10 @@ export class QuestionsService {
     @InjectModel('questions')
     private readonly questionModel: Model<QuestionDocument>,
   ) {}
+
+  dbSession(): Promise<ClientSession> {
+    return this.questionModel.db.startSession();
+  }
 
   addQuestion(
     reqBody: createQuestionDTO & { questionTemplate: mongooseTypes.ObjectId },
@@ -54,8 +58,8 @@ export class QuestionsService {
     return this.questionModel.findById(questionId);
   }
 
-  createCustomQuestion(body: any) {
-    return this.questionModel.create(body);
+  createCustomQuestion(body: any, session?: ClientSession) {
+    return this.questionModel.create([body], { session });
   }
 
   async findAndUpdateCustomQuestion(id, payload) {
