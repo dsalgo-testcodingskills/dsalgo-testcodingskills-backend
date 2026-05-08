@@ -551,6 +551,42 @@ export function getDatatypeOfParamters(language: string, paramType: string) {
         : paramType === 'float'
         ? 'float64'
         : paramType;
+  } else if (language === 'csharp') {
+    dataType =
+      paramType === '2d_array_int'
+        ? 'int[][]'
+        : paramType === 'array_int'
+        ? 'int[]'
+        : paramType === '2d_array_char'
+        ? 'char[][]'
+        : paramType === 'array_char'
+        ? 'char[]'
+        : paramType === 'boolean'
+        ? 'bool'
+        : paramType === 'string'
+        ? 'string'
+        : paramType === 'float'
+        ? 'float'
+        : paramType;
+  } else if (language === 'typescript') {
+    dataType =
+      paramType === '2d_array_int'
+        ? 'number[][]'
+        : paramType === 'array_int'
+        ? 'number[]'
+        : paramType === '2d_array_char'
+        ? 'string[][]'
+        : paramType === 'array_char'
+        ? 'string[]'
+        : paramType === 'boolean'
+        ? 'boolean'
+        : paramType === 'string'
+        ? 'string'
+        : paramType === 'float'
+        ? 'number'
+        : paramType === 'int'
+        ? 'number'
+        : paramType;
   }
   return dataType;
 }

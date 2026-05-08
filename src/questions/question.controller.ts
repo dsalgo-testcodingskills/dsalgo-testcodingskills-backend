@@ -27,6 +27,8 @@ import {
   PYTHON_SOLUTION_TEMPLATE,
   JAVASCRIPT_SOLUTION_TEMPLATE,
   GO_SOLUTION_TEMPLATE,
+  CSHARP_SOLUTION_TEMPLATE,
+  TYPESCRIPT_SOLUTION_TEMPLATE,
 } from 'src/utils/constants';
 import { AuthenticationService } from 'src/auth/authentication.service';
 
@@ -94,6 +96,8 @@ export class QuestionsController {
       let java_solution_params = '';
       let python_javascript_solution_params = '';
       let go_solution_params = '';
+      let csharp_solution_params = '';
+      let typescript_solution_params = '';
       for (const param of body.inputType) {
         cpp_solution_params =
           cpp_solution_params +
@@ -115,6 +119,20 @@ export class QuestionsController {
           ' ' +
           getDatatypeOfParamters('go', param.type) +
           ',';
+          
+        csharp_solution_params =
+          csharp_solution_params +
+          getDatatypeOfParamters('csharp', param.type) +
+          ' ' +
+          param.paramName +
+          ',';
+          
+        typescript_solution_params =
+          typescript_solution_params +
+          param.paramName +
+          ': ' +
+          getDatatypeOfParamters('typescript', param.type) +
+          ',';
       }
       //Remove comma from end of string
       cpp_solution_params = cpp_solution_params.replace(/,$/g, '');
@@ -122,6 +140,8 @@ export class QuestionsController {
       python_javascript_solution_params =
         python_javascript_solution_params.replace(/,$/g, '');
       go_solution_params = go_solution_params.replace(/.$/g, '');
+      csharp_solution_params = csharp_solution_params.replace(/,$/g, '');
+      typescript_solution_params = typescript_solution_params.replace(/,$/g, '');
 
       //Replacing return type with outputType and parameters with generated params, inside the solution template.
       body['solutionTemplates'] = [
@@ -159,6 +179,20 @@ export class QuestionsController {
             'return_type',
             getDatatypeOfParamters('go', body.outputType),
           ).replace('parameters', go_solution_params),
+        },
+        {
+          language: 'csharp',
+          code: CSHARP_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('csharp', body.outputType),
+          ).replace('parameters', csharp_solution_params),
+        },
+        {
+          language: 'typescript',
+          code: TYPESCRIPT_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('typescript', body.outputType),
+          ).replace('parameters', typescript_solution_params),
         },
       ];
 

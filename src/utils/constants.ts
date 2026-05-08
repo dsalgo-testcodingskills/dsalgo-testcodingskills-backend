@@ -1,4 +1,5 @@
-export const TEST_CODE_FOR_PYTHON = `SOLUTION_METHOD
+export const TEST_CODE_FOR_PYTHON = `import time
+SOLUTION_METHOD
 if __name__ == '__main__':
   INVOCATION`;
 
@@ -31,13 +32,33 @@ class Solution{
 
 export const TEST_CODE_FOR_GO = `package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 SOLUTION_METHOD
 func main() {
   INVOCATION
 }
 `;
+
+export const TEST_CODE_FOR_CSHARP = `using System;
+using System.Linq;
+using System.Diagnostics;
+
+class Program {
+  SOLUTION_METHOD
+  static void Main(string[] args) {
+    INVOCATION
+  }
+}`;
+
+export const TEST_CODE_FOR_TYPESCRIPT = `SOLUTION_METHOD
+function main() {
+  INVOCATION
+}
+main();`;
 
 export const CPP_SOLUTION_TEMPLATE = `return_type solution(parameters){
   //Write your code only in provided function
@@ -70,12 +91,27 @@ func solution(parameters) return_type {
 	// Function will be executed with inputs from test cases on run test cases
 }`;
 
+export const CSHARP_SOLUTION_TEMPLATE = `public static return_type solution(parameters){
+  //Write your code only in provided function
+  //Dont write any of your code outside this function
+  //Function will be executed with inputs from test cases on run test cases
+}`;
+
+export const TYPESCRIPT_SOLUTION_TEMPLATE = `function solution(parameters): return_type {
+  //Write your code only in provided function
+  //Dont write any of your code outside this function
+  //Function will be executed with inputs from test cases on run test cases
+  return null as any;
+}`;
+
 export enum TEST_LANGUAGES {
   PYTHON = 'python',
   CPP = 'cpp',
   JAVASCRIPT = 'javascript',
   JAVA = 'java',
   GO = 'go',
+  CSHARP = 'csharp',
+  TYPESCRIPT = 'typescript',
 }
 
 export interface QUESTION_INPUT_TYPE {
