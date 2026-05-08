@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { BadRequestException } from '@nestjs/common';
 import * as sgMail from '@sendgrid/mail';
 import * as nodeMailer from 'nodemailer';
+import { UserRoleEnum } from './enum';
 
 const smtpTransport = require('nodemailer-smtp-transport');
 config();
@@ -574,3 +575,12 @@ export function extractCompanyFromDomain(domain: string): string {
 export function escapeRegex(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+export const isSuperAdmin = (request: any): boolean => {
+  try {
+    const role = request?.payload?.['custom:role'];
+    return role === UserRoleEnum.SUPER_ADMIN;
+  } catch (error) {
+    return false;
+  }
+};

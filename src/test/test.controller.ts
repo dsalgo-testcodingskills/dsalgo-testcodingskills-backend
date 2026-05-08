@@ -30,6 +30,7 @@ import { DIFFICULTY_LEVEL } from 'src/questions/question.types';
 import * as AWS from 'aws-sdk';
 import { UploadFileDto } from './DTO/uploadfile.DTO';
 import { UserService } from 'src/user/user.service';
+import { isSuperAdmin } from 'src/common/common.functions';
 
 const S3 = new AWS.S3({
   region: process.env.AWS_REGION || 'us-east-2',
@@ -51,13 +52,14 @@ export class TestController {
   async createTest(@Req() request, @Body() body: CreateTestDTO) {
     try {
       const orgId = request.payload['custom:orgId'];
+      const isSuperAdminUser = isSuperAdmin(request);
 
-      // Checking if user reached free tests limits
+      // Checking if user reached free tests limits (skip for super admin)
       const org = await this.testService.getOrganization({
         _id: orgId,
       });
 
-      if (org && org.availableTests <= 0) {
+      if (!isSuperAdminUser && org && org.availableTests <= 0) {
         return {
           message: 'You have used all your tests, buy more',
           statusCode: 200,
@@ -129,10 +131,13 @@ export class TestController {
         },
         { organizationLogo: 1 },
       );
+      // only decrement quota for non-super-admin users
+    if (!isSuperAdminUser) {
       await this.authenticationService.updateOrganisation(
         { _id: orgId },
         { $inc: { availableTests: -1 } },
       );
+    }
       if (testDetails.emailId && body.sendMail) {
         await this.testService.sendMail(testDetails, logo);
       }
@@ -152,11 +157,12 @@ export class TestController {
   @Post('MultiLinkcreate')
   async createMultiTest(@Req() request, @Body() body: MultiLinkDTO) {
     try {
-      // Checking if user reached free tests limits
+      const isSuperAdminUser = isSuperAdmin(request);
+      // Checking if user reached free tests limits (skip for super admin)
       const org = await this.testService.getOrganization({
         _id: request.payload['custom:orgId'],
       });
-      if (org && org.availableTests <= 0) {
+      if (!isSuperAdminUser && org && org.availableTests <= 0) {
         return {
           message: 'You have used all your tests, buy more',
           statusCode: 200,
@@ -425,15 +431,16 @@ export class TestController {
     @Param('id') id: string,
   ) {
     try {
+      const isSuperAdminUser = isSuperAdmin(request);
       //Confirm if ID is valid
       let testLinkConfirm: any = await this.testService.getTest(id);
 
-      // Checking if user reached free tests limits
+      // Checking if user reached free tests limits (skip for super admin)
       const org = await this.testService.getOrganization({
         _id: testLinkConfirm.organisationId,
       });
 
-      if (org && org.availableTests <= 0) {
+      if (!isSuperAdminUser && org && org.availableTests <= 0) {
         return {
           message: 'You have used all your tests, buy more',
           statusCode: 200,
@@ -494,11 +501,13 @@ export class TestController {
 
         let link = `${process.env.FRONTEND_URL}/student/test/${createTest._id}`;
 
-        // Decreaement 1 from total tests
+        // Decrement 1 from total tests (only for non-super-admin users)
+      if (!isSuperAdminUser) {
         await this.authenticationService.updateOrganisation(
           { _id: testLinkConfirm.organisationId },
           { $inc: { availableTests: -1 } },
         );
+      }        
         return {
           message: 'Newsuccess',
           link: link,

@@ -20,6 +20,7 @@ import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 import { UserRoleEnum, UserStatusEnum } from 'src/common/enum';
 import { Types } from 'mongoose';
 import { allowedSuperAdminDomains } from 'src/utils/role.config';
+import { isSuperAdmin } from 'src/common/common.functions';
 
 @Controller('user')
 export class UserController {
@@ -61,6 +62,7 @@ export class UserController {
       const { name, emailId } = body;
       const userOrgId = request.payload['custom:orgId'];
       const currentUserRole = request.payload['custom:role'];
+      const isSuperAdminUser = isSuperAdmin(request);
 
       if (
         ![UserRoleEnum.ADMIN, UserRoleEnum.SUPER_ADMIN].includes(
@@ -106,8 +108,8 @@ export class UserController {
         _id: userOrgId,
       });
 
-      // check for user limit
-      if (orgDetails?.noOfUsers <= 0) {
+      // check for user limit (skip for super admin)
+      if (!isSuperAdminUser && orgDetails?.noOfUsers <= 0) {
         throw new Error('user limit exceeded');
       }
 
@@ -147,11 +149,14 @@ export class UserController {
               cognitoId: cognitoResp.userSub,
             },
           );
-          let credentials = { emailId, password: body.password };
+        // only decrement user quota for non-super-admin users
+        if (!isSuperAdminUser) {
           await this.authenticationService.updateOrganisation(
             { _id: new Types.ObjectId(userOrgId) },
             { $inc: { noOfUsers: -1 } },
           );
+        }
+          let credentials = { emailId, password: body.password };
           await this.testService.sendMailForUser(credentials);
         } catch (error) {
           throw new Error(error);

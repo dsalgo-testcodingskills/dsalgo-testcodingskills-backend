@@ -19,6 +19,7 @@ import { QuestionsService } from './question.service';
 import {
   checkTestCases,
   getDatatypeOfParamters,
+  isSuperAdmin,
 } from '../common/common.functions';
 import {
   CPP_SOLUTION_TEMPLATE,
@@ -52,9 +53,13 @@ export class QuestionsController {
     let session = null;
     try {
       let orgId = request.payload['custom:orgId'];
+      const isSuperAdminUser = isSuperAdmin(request);
       const org = await this.authenticationService.getOrganisation({
         _id: orgId,
       });
+      
+      // skip plan checks for super admin
+      if (!isSuperAdminUser) {
       if (org && org.subscriptionPlan === 'free') {
         return {
           message: 'no custom question for free plan',
@@ -68,6 +73,7 @@ export class QuestionsController {
             'You have used all Custom Questions, upgrade your plan to create more',
           statusCode: 402,
         };
+      }
       }
 
       //Check for each test case whether valid or not
@@ -160,6 +166,8 @@ export class QuestionsController {
         try {
           await this.questionsService.createCustomQuestion(body, session);
 
+          // only decrement quota for non-super-admin users
+          if (!isSuperAdminUser) {
           const updatedOrg = await this.authenticationService.updateOrganisation(
             { 
               _id: new Types.ObjectId(orgId), 
@@ -172,6 +180,7 @@ export class QuestionsController {
           
           if (!updatedOrg) {
             throw new Error('Custom question limit was exhausted during creation. Race condition detected.');
+          }
           }
         } catch (error) {
           throw new Error(error);
