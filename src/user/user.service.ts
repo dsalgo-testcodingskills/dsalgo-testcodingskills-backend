@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model } from 'mongoose';
 import { UserDocument } from 'src/user/entities/user.entity';
+import { SubscriptionDocument } from 'src/payment/SCHEMA/subscription.schema';
 
 var generator = require('generate-password');
 
@@ -10,6 +11,8 @@ export class UserService {
   constructor(
     @InjectModel('users')
     private readonly userModel: Model<UserDocument>,
+    @InjectModel('subscription')
+    private readonly subscriptionModel: Model<SubscriptionDocument>,
   ) {}
 
   autoPassword() {
@@ -51,5 +54,10 @@ export class UserService {
 
   deleteUser(id) {
     return this.userModel.findByIdAndDelete(id);
+  }
+  getSubscription(orgId) {
+    return this.subscriptionModel.find({
+      notes: { organizationId: orgId },
+    });
   }
 }

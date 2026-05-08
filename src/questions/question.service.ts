@@ -3,12 +3,15 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types as mongooseTypes, ClientSession } from 'mongoose';
 import { createQuestionDTO, getQuestionsDTO } from './DTO/question.dto';
 import { QuestionDocument } from './SCHEMA/question.schema';
+import { SubscriptionDocument } from 'src/payment/SCHEMA/subscription.schema';
 
 @Injectable()
 export class QuestionsService {
   constructor(
     @InjectModel('questions')
     private readonly questionModel: Model<QuestionDocument>,
+    @InjectModel('subscription')
+    private readonly subscriptionModel: Model<SubscriptionDocument>,
   ) {}
 
   dbSession(): Promise<ClientSession> {
@@ -130,5 +133,11 @@ export class QuestionsService {
 
   customQuestionCount(filter: any) {
     return this.questionModel.find(filter).count();
+  }
+
+  getSubsDetails(orgId) {
+    return this.subscriptionModel.find({
+      notes: { organizationId: orgId },
+    });
   }
 }

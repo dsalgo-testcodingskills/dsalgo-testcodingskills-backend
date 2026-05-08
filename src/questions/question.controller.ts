@@ -65,6 +65,19 @@ export class QuestionsController {
       
       // skip plan checks for super admin
       if (!isSuperAdminUser) {
+        const subscriptionDetails = await this.questionsService.getSubsDetails(orgId);
+        const activeSub = subscriptionDetails?.[0];
+
+        if (activeSub) {
+          const currentUnix = Math.floor(Date.now() / 1000);
+          if (activeSub.status === 'active' && activeSub.end_at < currentUnix) {
+            return {
+              message: 'Your subscription has expired, please renew to continue',
+              statusCode: 402,
+            };
+          }
+        }
+
       if (org && org.subscriptionPlan === 'free') {
         return {
           message: 'no custom question for free plan',

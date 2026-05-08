@@ -107,6 +107,15 @@ export class UserController {
       const orgDetails = await this.authenticationService.getOrganisation({
         _id: userOrgId,
       });
+      const subscriptionDetails = await this.userService.getSubscription(userOrgId);
+      const activeSub = subscriptionDetails?.[0];
+
+      if (!isSuperAdminUser && activeSub) {
+        const currentUnix = Math.floor(Date.now() / 1000);
+        if (activeSub.status === 'active' && activeSub.end_at < currentUnix) {
+          throw new Error('Your subscription has expired, please renew to continue');
+        }
+      }
 
       // check for user limit (skip for super admin)
       if (!isSuperAdminUser && orgDetails?.noOfUsers <= 0) {
