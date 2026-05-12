@@ -164,83 +164,83 @@ export class CompilerService {
         question.outputType === 'array_int' ||
         question.outputType === 'array_char'
       ) {
-        return `auto __start_time = std::chrono::high_resolution_clock::now(); ${getDatatypeOfParamters(
+        return `${getDatatypeOfParamters(
           language,
           question.outputType,
-        )} arr = ${functionCall}; auto __end_time = std::chrono::high_resolution_clock::now(); double __runtime = std::chrono::duration_cast<std::chrono::nanoseconds>(__end_time - __start_time).count() / 1e6; cout<<"<logsOutputSeprator>";for(int i=0;i<${
+        )} arr = ${functionCall}; cout<<"<logsOutputSeprator>";for(int i=0;i<${
           question.testCases[testCaseIndex].output.length
-        };i++)cout<<arr[i]<<" "; cout<<"<runtimeSeprator>"<<__runtime;`;
+        };i++)cout<<arr[i]<<" ";`;
       } else {
-        return `auto __start_time = std::chrono::high_resolution_clock::now(); ${getDatatypeOfParamters(
+        return `${getDatatypeOfParamters(
           language,
           question.outputType,
-        )} value = ${functionCall}; auto __end_time = std::chrono::high_resolution_clock::now(); double __runtime = std::chrono::duration_cast<std::chrono::nanoseconds>(__end_time - __start_time).count() / 1e6; cout<<"<logsOutputSeprator>"<<value<<"<runtimeSeprator>"<<__runtime;`;
+        )} value = ${functionCall}; cout<<"<logsOutputSeprator>"<<value;`;
       }
     } else if (language === 'java') {
       if (
         question.outputType === 'array_int' ||
         question.outputType === 'array_char'
       ) {
-        return `long __startTime = System.nanoTime(); ${getDatatypeOfParamters(
+        return `${getDatatypeOfParamters(
           language,
           question.outputType,
-        )} arr = ${functionCall}; long __endTime = System.nanoTime(); double __runtime = (__endTime - __startTime) / 1000000.0; System.out.print("<logsOutputSeprator>");for(int i=0;i<arr.length;i++)System.out.print(arr[i]+" "); System.out.print("<runtimeSeprator>"+__runtime);`;
+        )} arr = ${functionCall}; System.out.print("<logsOutputSeprator>");for(int i=0;i<arr.length;i++)System.out.print(arr[i]+" ");`;
       } else {
-        return `long __startTime = System.nanoTime(); ${getDatatypeOfParamters(
+        return `${getDatatypeOfParamters(
           language,
           question.outputType,
-        )} value = ${functionCall}; long __endTime = System.nanoTime(); double __runtime = (__endTime - __startTime) / 1000000.0; System.out.print("<logsOutputSeprator>"+value+"<runtimeSeprator>"+__runtime);`;
+        )} value = ${functionCall}; System.out.print("<logsOutputSeprator>"+value);`;
       }
     } else if (language === 'python') {
       if (
         question.outputType === 'array_int' ||
         question.outputType === 'array_char'
       ) {
-        return `__start_time=time.perf_counter();\narr=${functionCall};\n__end_time=time.perf_counter();\n__runtime=(__end_time-__start_time)*1000;\nprint("<logsOutputSeprator>",end='');\nfor el in arr:\n\tprint(el,end=' ');\nprint("<runtimeSeprator>",__runtime,end='',sep='');`;
+        return `arr=${functionCall};\nprint("<logsOutputSeprator>",end='');\nfor el in arr:\n\tprint(el,end=' ');`;
       } else {
-        return `__start_time=time.perf_counter();\nvalue=${functionCall};\n__end_time=time.perf_counter();\n__runtime=(__end_time-__start_time)*1000;\nprint("<logsOutputSeprator>",value,"<runtimeSeprator>",__runtime,end='',sep='');`;
+        return `value=${functionCall};\nprint("<logsOutputSeprator>",value,end='',sep='');`;
       }
     } else if (language === 'javascript') {
       if (
         question.outputType === 'array_int' ||
         question.outputType === 'array_char'
       ) {
-        return `const __startTime = process.hrtime.bigint(); arr = ${functionCall}; const __endTime = process.hrtime.bigint(); const __runtime = Number(__endTime - __startTime) / 1000000; if(arr) console.log("<logsOutputSeprator>",...arr,"<runtimeSeprator>",__runtime);else console.log("<logsOutputSeprator>",arr,"<runtimeSeprator>",__runtime);`;
+        return `arr = ${functionCall}; if(arr) console.log("<logsOutputSeprator>",...arr);else console.log("<logsOutputSeprator>",arr);`;
       } else {
-        return `const __startTime = process.hrtime.bigint(); value = ${functionCall}; const __endTime = process.hrtime.bigint(); const __runtime = Number(__endTime - __startTime) / 1000000; console.log("<logsOutputSeprator>",value,"<runtimeSeprator>",__runtime);`;
+        return `value = ${functionCall}; console.log("<logsOutputSeprator>",value);`;
       }
     } else if (language === 'go') {
       if (
         question.outputType === 'array_int' ||
         question.outputType === 'array_char'
       ) {
-        return `__startTime := time.Now(); arr := ${functionCall}; __duration := time.Since(__startTime); __runtime := float64(__duration.Nanoseconds()) / 1e6; fmt.Print("<logsOutputSeprator>"); for i := 0; i < len(arr); i++ { fmt.Print(arr[i], " ") }; fmt.Printf("<runtimeSeprator>%f", __runtime)`;
+        return `arr := ${functionCall}; fmt.Print("<logsOutputSeprator>"); for i := 0; i < len(arr); i++ { fmt.Print(arr[i], " ") }`;
       } else {
-        return `__startTime := time.Now(); value := ${functionCall}; __duration := time.Since(__startTime); __runtime := float64(__duration.Nanoseconds()) / 1e6; fmt.Printf("<logsOutputSeprator>%v<runtimeSeprator>%f\\n", value, __runtime)`;
+        return `value := ${functionCall}; fmt.Printf("<logsOutputSeprator>%v\\n", value)`;
       }
     } else if (language === 'csharp') {
       if (
         question.outputType === 'array_int' ||
         question.outputType === 'array_char'
       ) {
-        return `Stopwatch __stopwatch = new Stopwatch(); __stopwatch.Start(); ${getDatatypeOfParamters(
+        return `${getDatatypeOfParamters(
           language,
           question.outputType,
-        )} arr = ${functionCall}; __stopwatch.Stop(); double __runtime = __stopwatch.Elapsed.TotalMilliseconds; Console.Write("<logsOutputSeprator>");for(int i=0;i<arr.Length;i++)Console.Write(arr[i]+" "); Console.Write("<runtimeSeprator>"+__runtime);`;
+        )} arr = ${functionCall}; Console.Write("<logsOutputSeprator>");for(int i=0;i<arr.Length;i++)Console.Write(arr[i]+" ");`;
       } else {
-        return `Stopwatch __stopwatch = new Stopwatch(); __stopwatch.Start(); ${getDatatypeOfParamters(
+        return `${getDatatypeOfParamters(
           language,
           question.outputType,
-        )} value = ${functionCall}; __stopwatch.Stop(); double __runtime = __stopwatch.Elapsed.TotalMilliseconds; Console.Write("<logsOutputSeprator>"+value+"<runtimeSeprator>"+__runtime);`;
+        )} value = ${functionCall}; Console.Write("<logsOutputSeprator>"+value);`;
       }
     } else if (language === 'typescript') {
       if (
         question.outputType === 'array_int' ||
         question.outputType === 'array_char'
       ) {
-        return `const __startTime = process.hrtime.bigint(); let arr = ${functionCall}; const __endTime = process.hrtime.bigint(); const __runtime = Number(__endTime - __startTime) / 1000000; if(arr) console.log("<logsOutputSeprator>",...arr,"<runtimeSeprator>",__runtime);else console.log("<logsOutputSeprator>",arr,"<runtimeSeprator>",__runtime);`;
+        return `let arr = ${functionCall}; if(arr) console.log("<logsOutputSeprator>",...arr);else console.log("<logsOutputSeprator>",arr);`;
       } else {
-        return `const __startTime = process.hrtime.bigint(); let value = ${functionCall}; const __endTime = process.hrtime.bigint(); const __runtime = Number(__endTime - __startTime) / 1000000; console.log("<logsOutputSeprator>",value,"<runtimeSeprator>",__runtime);`;
+        return `let value = ${functionCall}; console.log("<logsOutputSeprator>",value);`;
       }
     }
   }
@@ -281,26 +281,8 @@ export class CompilerService {
 
   async executeCode(executeCommand, question, testCaseIndex, language) {
     return new Promise((resolve, reject) => {
-      const timedCommand = `/usr/bin/time -f "METRICS:%e %M" sh -c '${executeCommand.replace(/'/g, `'\\''`)}'`;
-      exec(timedCommand, { timeout: 10000 }, async (error, stdout, stderr) => {
-        let runtime = 0;
-        let memory = 0;
-        if (stderr) {
-            const metricsMatch = stderr.match(/METRICS:([\d\.]+)\s+(\d+)/);
-            if (metricsMatch) {
-               runtime = parseFloat(metricsMatch[1]);
-               memory = parseInt(metricsMatch[2], 10);
-               stderr = stderr.replace(/METRICS:[\d\.]+\s+\d+\n?/, '').trim();
-            }
-        }
-
+      exec(executeCommand, { timeout: 10000 }, async (error, stdout, stderr) => {
         if (stdout) {
-          const runtimeParts = stdout.split('<runtimeSeprator>');
-          if (runtimeParts.length > 1) {
-            runtime = parseFloat(runtimeParts[1].trim());
-            stdout = runtimeParts[0];
-          }
-
           const [userLogs, userOutput] = stdout.split('<logsOutputSeprator>');
           let convertedOutput = await this.getConvertedOutput(
             userOutput ? userOutput.trim() : '',
@@ -316,8 +298,6 @@ export class CompilerService {
               logs: userLogs,
               hidden: question.testCases[testCaseIndex].hidden,
               actualOutput: userOutput ? userOutput.trim() : '',
-              runtime,
-              memory
             });
           } else
             resolve({
@@ -325,8 +305,6 @@ export class CompilerService {
               logs: userLogs,
               hidden: question.testCases[testCaseIndex].hidden,
               actualOutput: userOutput ? userOutput.trim() : '',
-              runtime,
-              memory
             });
         } else if (stderr && stderr.length > 0) {
           let msg = 'Command failed: ';
@@ -351,8 +329,6 @@ export class CompilerService {
             logs: msg + stderr,
             hidden: question.testCases[testCaseIndex].hidden,
             actualOutput: '',
-            runtime,
-            memory
           });
         } else if (error) {
           reject({
@@ -360,8 +336,6 @@ export class CompilerService {
             logs: 'Code execution failed due to some error on server',
             hidden: question.testCases[testCaseIndex].hidden,
             actualOutput: '',
-            runtime,
-            memory
           });
         } else {
           resolve({
@@ -369,8 +343,6 @@ export class CompilerService {
             logs: 'Code execution produced no output.',
             hidden: question.testCases[testCaseIndex].hidden,
             actualOutput: '',
-            runtime,
-            memory
           });
         }
       });

@@ -1,29 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsNotEmpty, IsOptional } from 'class-validator';
 import { Types } from 'mongoose';
-
-export class TestCaseResultDTO {
-  @ApiProperty({ required: false })
-  @IsOptional()
-  input: any[];
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  output: any;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  hidden: boolean;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  runtime: number;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  memory: number;
-}
 
 export class CreateTestDTO {
   @ApiProperty({ required: true })
@@ -79,12 +56,6 @@ export class SaveAnswerDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   imgURL: string;
-  @ApiProperty({ required: false, type: [TestCaseResultDTO] })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => TestCaseResultDTO)
-  testCases: TestCaseResultDTO[];
 }
 
 export class SubmitAnswerDTO {
@@ -103,12 +74,6 @@ export class SubmitAnswerDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   language: string;
-  @ApiProperty({ required: false, type: [TestCaseResultDTO] })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => TestCaseResultDTO)
-  testCases: TestCaseResultDTO[];
 }
 
 export class getallTestsubmissionsDTO {

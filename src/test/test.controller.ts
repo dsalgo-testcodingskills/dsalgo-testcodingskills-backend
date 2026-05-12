@@ -594,7 +594,6 @@ export class TestController {
         time: new Date(),
         language: body.language,
         imgurl: body.imgURL,
-        testCases: body.testCases ?? [],
       };
       return this.testService.saveAnswer(body, updateAnswer);
     } catch (error) {
@@ -614,7 +613,6 @@ export class TestController {
         code: body.code,
         time: new Date(),
         language: body.language,
-        testCases: body.testCases ?? [],
       };
       return this.testService.submitAnswer(body, updateAnswer);
     } catch (error) {
