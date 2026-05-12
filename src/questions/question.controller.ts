@@ -249,6 +249,135 @@ export class QuestionsController {
       if (session) await session.endSession();
     }
   }
+  
+  @Post('previewCustomQuestion')
+  @UsePipes(ValidationPipe)
+  async previewCustomQuestion(
+    @Req() request,
+    @Body() body: createCustomQuestionDTO,
+  ) {
+    try {    
+      let isValid;
+      [isValid, body] = checkTestCases(body);
+
+      if (!isValid) return body;
+      let cpp_solution_params = '';
+      let java_solution_params = '';
+      let python_javascript_solution_params = '';
+      let go_solution_params = '';
+      let csharp_solution_params = '';
+      let typescript_solution_params = '';
+      for (const param of body.inputType) {
+        cpp_solution_params =
+          cpp_solution_params +
+          getDatatypeOfParamters('cpp', param.type) +
+          ' ' +
+          param.paramName +
+          ',';
+        java_solution_params =
+          java_solution_params +
+          getDatatypeOfParamters('java', param.type) +
+          ' ' +
+          param.paramName +
+          ',';
+        python_javascript_solution_params =
+          python_javascript_solution_params + param.paramName + ',';
+
+        go_solution_params =
+          param.paramName +
+          ' ' +
+          getDatatypeOfParamters('go', param.type) +
+          ',';
+
+        csharp_solution_params =
+          csharp_solution_params +
+          getDatatypeOfParamters('csharp', param.type) +
+          ' ' +
+          param.paramName +
+          ',';
+
+        typescript_solution_params =
+          typescript_solution_params +
+          param.paramName +
+          ': ' +
+          getDatatypeOfParamters('typescript', param.type) +
+          ',';
+      }
+      cpp_solution_params = cpp_solution_params.replace(/,$/g, '');
+      java_solution_params = java_solution_params.replace(/,$/g, '');
+      python_javascript_solution_params =
+        python_javascript_solution_params.replace(/,$/g, '');
+      go_solution_params = go_solution_params.replace(/.$/g, '');
+      csharp_solution_params = csharp_solution_params.replace(/,$/g, '');
+      typescript_solution_params = typescript_solution_params.replace(/,$/g, '');
+
+
+      body['solutionTemplates'] = [
+        {
+          language: 'cpp',
+          code: CPP_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('cpp', body.outputType),
+          ).replace('parameters', cpp_solution_params),
+        },
+        {
+          language: 'java',
+          code: JAVA_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('java', body.outputType),
+          ).replace('parameters', java_solution_params),
+        },
+        {
+          language: 'python',
+          code: PYTHON_SOLUTION_TEMPLATE.replace(
+            'parameters',
+            python_javascript_solution_params,
+          ),
+        },
+        {
+          language: 'javascript',
+          code: JAVASCRIPT_SOLUTION_TEMPLATE.replace(
+            'parameters',
+            python_javascript_solution_params,
+          ),
+        },
+        {
+          language: 'go',
+          code: GO_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('go', body.outputType),
+          ).replace('parameters', go_solution_params),
+        },
+        {
+          language: 'csharp',
+          code: CSHARP_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('csharp', body.outputType),
+          ).replace('parameters', csharp_solution_params),
+        },
+        {
+          language: 'typescript',
+          code: TYPESCRIPT_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('typescript', body.outputType),
+          ).replace('parameters', typescript_solution_params),
+        },
+      ];
+
+      body['organizationId'] = new Types.ObjectId(
+        request.payload['custom:orgId'],
+      );
+      body['createdBy'] = request.payload.nickname;
+
+      return {
+        message: 'Question preview generated successfully',
+        statusCode: 200,
+        data: body,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 
   @Patch('/updateCustomQuestion/:id')
   async update(@Param('id') id: string, @Body() body: any, @Req() request) {
