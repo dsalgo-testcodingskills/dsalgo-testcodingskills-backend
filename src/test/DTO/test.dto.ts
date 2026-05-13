@@ -56,12 +56,6 @@ export class SaveAnswerDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   imgURL: string;
-  @ApiProperty({ required: false })
-  @IsOptional()
-  runtime: number;
-  @ApiProperty({ required: false })
-  @IsOptional()
-  memory: number;
 }
 
 export class SubmitAnswerDTO {
@@ -80,12 +74,6 @@ export class SubmitAnswerDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   language: string;
-  @ApiProperty({ required: false })
-  @IsOptional()
-  runtime: number;
-  @ApiProperty({ required: false })
-  @IsOptional()
-  memory: number;
 }
 
 export class getallTestsubmissionsDTO {
