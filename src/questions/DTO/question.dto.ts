@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import { IsArray, IsNotEmpty } from 'class-validator';
 import { Types } from 'mongoose';
 import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE } from 'src/utils/constants';
 import { DIFFICULTY_LEVEL, testCase } from '../question.types';
@@ -88,6 +88,11 @@ export class createCustomQuestionDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   instructions: string;
+
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  @IsArray()
+  topics: string[];
 
   @ApiProperty({ required: true })
   @IsNotEmpty()

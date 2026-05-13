@@ -636,8 +636,11 @@ export class TestController {
       }
 
       // remove unselected questions
-      test.questions = test.questions.filter((ques) => {
-        return ques.question._id.toString() === questionId;
+      test.questions = test.questions.map((ques) => {
+        return {
+          ...ques,
+          topics: ques.question?.topics || [],  
+        };
       });
 
       // signed imgUrl for admin user only
