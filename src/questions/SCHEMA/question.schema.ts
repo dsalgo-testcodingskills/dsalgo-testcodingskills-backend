@@ -26,6 +26,9 @@ export class Question {
   @Prop()
   instructions: string;
 
+  @Prop({ type: [String] })
+  topics: string[];
+
   @Prop()
   testCases: testCase[];
 
