@@ -9,6 +9,7 @@ interface roleApiConfigInterF {
   test: Array<roleInterF>;
   question: Array<roleInterF>;
   compiler: Array<roleInterF>;
+  super_admin: Array<roleInterF>;
 }
 
 interface roleModuleConfigInterF {
@@ -17,6 +18,7 @@ interface roleModuleConfigInterF {
   test: boolean;
   question: boolean;
   compiler: boolean;
+  super_admin: boolean;
 }
 
 interface roleConfigInterF {
@@ -33,6 +35,7 @@ export const roleConfig: roleConfigInterF = {
     payment: true,
     question: true,
     compiler: true,
+    super_admin: true,
   },
   admin: {
     user: true,
@@ -40,6 +43,7 @@ export const roleConfig: roleConfigInterF = {
     payment: true,
     question: true,
     compiler: true,
+    super_admin: false,
   },
   user: {
     user: false,
@@ -47,6 +51,7 @@ export const roleConfig: roleConfigInterF = {
     payment: false,
     question: true,
     compiler: true,
+    super_admin: false,
   },
 };
 
@@ -103,6 +108,9 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: '/compiler/questions', method: 'get' },
     { url: '/compiler/questionDetails/:id', method: 'get' },
     { url: '/compiler/compileCode', method: 'post' },
+  ],
+  super_admin: [
+    { url: '/super-admin/getalltest', method: 'post' },
   ],
 };
 

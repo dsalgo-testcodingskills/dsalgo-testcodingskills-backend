@@ -35,6 +35,7 @@ import { RazorPayPaymentService } from './payment/payment.service';
 import { UserSchema } from './user/entities/user.entity';
 import { UserController } from './user/user.controller';
 import { UserService } from './user/user.service';
+import { SuperAdminModule } from './super-admin/super-admin.module';
 config();
 
 @Module({
@@ -57,6 +58,7 @@ config();
       { name: 'payment', schema: PaymentSchema },
       { name: 'subscription', schema: SubscriptionSchema },
     ]),
+    SuperAdminModule,
   ],
   controllers: [
     AppController,
