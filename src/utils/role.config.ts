@@ -112,6 +112,9 @@ export const roleApiConfig: roleApiConfigInterF = {
   super_admin: [
     { url: '/super-admin/getAllOrganizations', method: 'post' },
     { url: '/super-admin/organization/:id', method: 'get' },
+    { url: '/super-admin/organization/:id/users', method: 'post' },
+    { url: '/super-admin/organization/:id/questions', method: 'post' },
+    { url: '/super-admin/organization/:id/tests', method: 'post' },
   ],
 };
 

@@ -4,10 +4,10 @@ import {
   ExecutionContext,
   UnauthorizedException,
   HttpException,
-} from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
-import { roleApiConfig, roleConfig } from 'src/utils/role.config';
-import { AuthenticationService } from './authentication.service';
+} from "@nestjs/common";
+import { UserService } from "src/user/user.service";
+import { roleApiConfig, roleConfig } from "src/utils/role.config";
+import { AuthenticationService } from "./authentication.service";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -19,7 +19,7 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const { authorization }: any = request.headers;
-    let authorizationString = '';
+    let authorizationString = "";
     if (Array.isArray(authorization)) {
       authorizationString = authorization[0];
     } else {
@@ -30,7 +30,7 @@ export class AuthGuard implements CanActivate {
     const reqMeta = {
       url: request.url,
       method: request.method,
-      params: request['params'],
+      params: request["params"],
       body: request.body,
       headers: request.headers,
     };
@@ -42,10 +42,10 @@ export class AuthGuard implements CanActivate {
     );
 
     if (validateTokenResponse.valid) {
-      request['payload'] = validateTokenResponse.payload;
+      request["payload"] = validateTokenResponse.payload;
       if (
-        request.url !== '/test/verifyEmail' &&
-        request.url !== '/test/updateCognitoOrganization' &&
+        request.url !== "/test/verifyEmail" &&
+        request.url !== "/test/updateCognitoOrganization" &&
         !validateTokenResponse.payload.nickname
       ) {
         let userData = await this.userService.getUser(
@@ -55,7 +55,7 @@ export class AuthGuard implements CanActivate {
           },
           { _id: 1 },
         );
-        request['payload'] = {
+        request["payload"] = {
           ...validateTokenResponse.payload,
           nickname: userData._id.toString(),
         };
@@ -73,20 +73,21 @@ export class AuthGuard implements CanActivate {
     if (!authHeader) {
       throw new UnauthorizedException(`Authorization header is required`);
     }
-    const tokenArray = authHeader.split(' ', 2);
-    if (!tokenArray[0] || tokenArray[0].toLowerCase() !== 'bearer') {
-      throw new UnauthorizedException('Token type must be Bearer');
+    // console.log(authHeader);
+    const tokenArray = authHeader.split(" ", 2);
+    if (!tokenArray[0] || tokenArray[0].toLowerCase() !== "bearer") {
+      throw new UnauthorizedException("Token type must be Bearer");
     }
     try {
       const validatedData = await this.authService.validateToken(tokenArray[1]);
       request.validatedData = validatedData.payload;
       return this.authorizationCheck(validatedData, requestMeta);
     } catch (e) {
-      if (e.message === 'Session expired. Please login again.') {
+      if (e.message === "Session expired. Please login again.") {
         throw new HttpException(
           {
             status: 455,
-            error: 'Session expired. Please login again.',
+            error: "Session expired. Please login again.",
           },
           455,
         );
@@ -101,62 +102,62 @@ export class AuthGuard implements CanActivate {
     requestMeta: any,
   ): Promise<any> => {
     try {
-      const role = validatedData.payload['custom:role'];
+      const role = validatedData.payload["custom:role"];
       const APIpermissions = roleConfig;
 
       if (!APIpermissions[role]) {
-        throw new UnauthorizedException('You are not allowed');
+        throw new UnauthorizedException("You are not allowed");
       }
 
-        let apiToFind = requestMeta.url;
-        const methodToFind = requestMeta.method;
-        const paramsList = Object.keys(requestMeta.params);
-        const paramsCount = paramsList.length;
+      let apiToFind = requestMeta.url;
+      const methodToFind = requestMeta.method;
+      const paramsList = Object.keys(requestMeta.params);
+      const paramsCount = paramsList.length;
 
-        // Check if request has any request params.. if found update api URL i.e. --> this - /widget/kdn233452jkj4kj254  to /widget/:id
-        if (paramsCount) {
-          paramsList.forEach((ele) => {
-            apiToFind = apiToFind.replace(
-              `${requestMeta.params[ele]}`.trim(),
-              `:${ele}`,
-            );
-          });
-        }
-
-        // Get all the listed APIs array of Objects
-        const allApiList = Object.values(roleApiConfig); // i.e. [{url:"/dashboard",method:"post"},...]
-        const apiFoundInkeys = [];
-
-        allApiList.forEach((apisWithAccessTypes: any, index) => {
-          apisWithAccessTypes.some((el) => {
-            if (
-              el.url === apiToFind &&
-              el.method === methodToFind.toLowerCase()
-            ) {
-              apiFoundInkeys.push({
-                access: Object.keys(roleApiConfig)[index], // payment etc
-              });
-              return true;
-            }
-            return false;
-          });
+      // Check if request has any request params.. if found update api URL i.e. --> this - /widget/kdn233452jkj4kj254  to /widget/:id
+      if (paramsCount) {
+        paramsList.forEach((ele) => {
+          apiToFind = apiToFind.replace(
+            `${requestMeta.params[ele]}`.trim(),
+            `:${ele}`,
+          );
         });
+      }
 
-        // apiFoundInkeys will be like  [{access:dashboard},{access:widget}]
-        if (!apiFoundInkeys[0]) {
-          throw new UnauthorizedException('not permitted');
-        }
+      // Get all the listed APIs array of Objects
+      const allApiList = Object.values(roleApiConfig); // i.e. [{url:"/dashboard",method:"post"},...]
+      const apiFoundInkeys = [];
 
-        const accessFound = apiFoundInkeys.some((key) => {
-          if (APIpermissions[role] && APIpermissions[role][key.access]) {
+      allApiList.forEach((apisWithAccessTypes: any, index) => {
+        apisWithAccessTypes.some((el) => {
+          if (
+            el.url === apiToFind &&
+            el.method === methodToFind.toLowerCase()
+          ) {
+            apiFoundInkeys.push({
+              access: Object.keys(roleApiConfig)[index], // payment etc
+            });
             return true;
           }
           return false;
         });
-        if (!accessFound) {
-          throw new UnauthorizedException('not permitted');
+      });
+
+      // apiFoundInkeys will be like  [{access:dashboard},{access:widget}]
+      if (!apiFoundInkeys[0]) {
+        throw new UnauthorizedException("not permitted");
+      }
+
+      const accessFound = apiFoundInkeys.some((key) => {
+        if (APIpermissions[role] && APIpermissions[role][key.access]) {
+          return true;
         }
-        return validatedData;
+        return false;
+      });
+      if (!accessFound) {
+        throw new UnauthorizedException("not permitted");
+      }
+      return validatedData;
     } catch (error) {
       throw new UnauthorizedException(error.message);
     }
