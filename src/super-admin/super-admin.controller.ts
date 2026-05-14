@@ -30,4 +30,28 @@ export class SuperAdminController {
   getOrganizationById(@Param("id") id: string) {
     return this.superAdminService.getOrganizationById(id);
   }
+
+  @Post("organization/:id/users")
+  getOrganizationUsers(
+    @Param("id") id: string,
+    @Body() body: getallTestsubmissionsDTO,
+  ) {
+    return this.superAdminService.getOrganizationUsers(id, body);
+  }
+
+  @Post("organization/:id/questions")
+  getOrganizationQuestions(
+    @Param("id") id: string,
+    @Body() body: getallTestsubmissionsDTO,
+  ) {
+    return this.superAdminService.getOrganizationQuestions(id, body);
+  }
+
+  @Post("organization/:id/tests")
+  getOrganizationTests(
+    @Param("id") id: string,
+    @Body() body: getallTestsubmissionsDTO,
+  ) {
+    return this.superAdminService.getOrganizationTests(id, body);
+  }
 }
