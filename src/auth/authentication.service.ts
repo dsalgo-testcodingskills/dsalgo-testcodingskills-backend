@@ -588,11 +588,12 @@ export class AuthenticationService {
     return this.orgModel.findByIdAndDelete(id);
   }
 
-async findExistingOrganization(
-  organizationName: string,
-  emailId: string
-) {
-  const normalizedInput = normalizeCompanyName(organizationName);
+  async findExistingOrganization(
+    organizationName: string,
+    emailId: string,
+  ) {
+    if (!organizationName || !emailId) return null;
+    const normalizedInput = normalizeCompanyName(organizationName);
 
   const emailDomain = extractDomain(emailId);
 

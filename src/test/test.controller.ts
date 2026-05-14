@@ -360,12 +360,21 @@ export class TestController {
     try {
       const testData = await this.testService.getTest(testId);
 
+      if (!testData) {
+        throw new BadRequestException('No Test Found');
+      }
+
       const response = await this.authenticationService.getOrganisation(
         {
           _id: new Types.ObjectId(testData.organisationId),
         },
         { name: 1, organizationLogo: 1 },
       );
+
+      if (!response) {
+        console.log('Organization not found for ID:', testData.organisationId);
+        throw new BadRequestException('Organization not found');
+      }
       return response;
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -376,6 +385,17 @@ export class TestController {
   async getTest(@Param('id') id: string, @Query('admin') isAdmin: string) {
     try {
       const test: any = await this.testService.getTest(id);
+      console.log(test);
+
+      if (!test) {
+        throw new BadRequestException('No Test Found');
+      }
+
+      if (!test.organisationId) {
+        throw new BadRequestException(
+          'Test is not associated with any organization',
+        );
+      }
 
       const response = await this.authenticationService.getOrganisation(
         {
@@ -384,14 +404,14 @@ export class TestController {
         { availableTests: 1 },
       );
 
+      if (!response) {
+        throw new BadRequestException('Organization not found');
+      }
+
       if (response.availableTests === 0) {
         throw new BadRequestException(
           'You cannot proceed further. Contact your organisation for new test link.',
         );
-      }
-
-      if (!test) {
-        throw new BadRequestException('No Test Found');
       } else if (test.startDate > moment().valueOf()) {
         //is he came before start date
         return {

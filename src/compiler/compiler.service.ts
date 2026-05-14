@@ -57,7 +57,7 @@ export class CompilerService {
             ? `vector<char>{${JSON.stringify(testCaseInput[i])
                 .replace(/^\[|\]$/g, '')
                 .replace(/"/g, "'")}}`
-            : `${testCaseInput[i]},`;
+            : `${JSON.stringify(testCaseInput[i])},`;
       } else if (language === 'java') {
         functionArguments +=
           inputType[i].type === '2d_array_int'
@@ -79,7 +79,7 @@ export class CompilerService {
             ? `new char[] {${JSON.stringify(testCaseInput[i])
                 .replace(/^\[|\]$/g, '')
                 .replace(/"/g, "'")}},`
-            : `${testCaseInput[i]},`;
+            : `${JSON.stringify(testCaseInput[i])},`;
       } else if (language === 'python') {
         functionArguments +=
           inputType[i].type === 'boolean'
@@ -89,13 +89,7 @@ export class CompilerService {
             ? JSON.stringify(testCaseInput[i]).replace(/\],\[/g, '],\n[') + ','
             : JSON.stringify(testCaseInput[i]) + ',';
       } else if (language === 'javascript') {
-        functionArguments +=
-          inputType[i].type === 'array_int' ||
-          inputType[i].type === 'array_char' ||
-          inputType[i].type === '2d_array_int' ||
-          inputType[i].type === '2d_array_char'
-            ? JSON.stringify(testCaseInput[i]) + ','
-            : `${testCaseInput[i]},`;
+        functionArguments += JSON.stringify(testCaseInput[i]) + ',';
       } else if (language === 'go') {
         functionArguments +=
           inputType[i].type === '2d_array_int'
@@ -117,7 +111,7 @@ export class CompilerService {
             ? `[]rune{${JSON.stringify(testCaseInput[i])
                 .replace(/^\[|\]$/g, '')
                 .replace(/"/g, "'")}}, `
-            : `${testCaseInput[i]}, `;
+            : `${JSON.stringify(testCaseInput[i])}, `;
       } else if (language === 'csharp') {
         functionArguments +=
           inputType[i].type === '2d_array_int'
@@ -139,15 +133,9 @@ export class CompilerService {
             ? `new char[] {${JSON.stringify(testCaseInput[i])
                 .replace(/^\[|\]$/g, '')
                 .replace(/"/g, "'")}},`
-            : `${testCaseInput[i]},`;
+            : `${JSON.stringify(testCaseInput[i])},`;
       } else if (language === 'typescript') {
-        functionArguments +=
-          inputType[i].type === 'array_int' ||
-          inputType[i].type === 'array_char' ||
-          inputType[i].type === '2d_array_int' ||
-          inputType[i].type === '2d_array_char'
-            ? JSON.stringify(testCaseInput[i]) + ','
-            : `${testCaseInput[i]},`;
+        functionArguments += JSON.stringify(testCaseInput[i]) + ',';
       }
     }
     return functionArguments.replace(/,$/g, '');
@@ -272,6 +260,8 @@ export class CompilerService {
               ? false
               : userOutput;
         convertedOutput = JSON.parse(userOutput);
+      } else if (outputType === 'string') {
+        convertedOutput = userOutput;
       } else convertedOutput = null;
       return convertedOutput;
     } catch (error) {

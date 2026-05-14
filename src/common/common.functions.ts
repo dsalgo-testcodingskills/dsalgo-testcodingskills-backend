@@ -609,7 +609,7 @@ export function extractCompanyFromDomain(domain: string): string {
 }
 
 export function escapeRegex(text: string) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text ? text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
 }
 
 export const isSuperAdmin = (request: any): boolean => {
