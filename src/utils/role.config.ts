@@ -110,7 +110,8 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: '/compiler/compileCode', method: 'post' },
   ],
   super_admin: [
-    { url: '/super-admin/getalltest', method: 'post' },
+    { url: '/super-admin/getAllOrganizations', method: 'post' },
+    { url: '/super-admin/organization/:id', method: 'get' },
   ],
 };
 
