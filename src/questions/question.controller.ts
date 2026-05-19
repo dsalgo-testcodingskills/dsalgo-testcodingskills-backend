@@ -57,7 +57,7 @@ export class QuestionsController {
   ) {
     let session = null;
     try {
-      let orgId = request.payload['custom:orgId'];
+      let orgId = new Types.ObjectId(request.payload['custom:orgId']);
       const isSuperAdminUser = isSuperAdmin(request);
       const org = await this.authenticationService.getOrganisation({
         _id: orgId,
