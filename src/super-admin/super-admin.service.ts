@@ -2,12 +2,11 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { TestDocument } from "../test/SCHEMA/test.schema";
-import { getallTestsubmissionsDTO } from "../test/DTO/test.dto";
-import { CreateSuperAdminDto } from "./dto/create-super-admin.dto";
-import { UpdateSuperAdminDto } from "./dto/update-super-admin.dto";
 import { OrganizationDocument } from "../auth/schema/organization.schema";
 import { UserDocument } from "../user/entities/user.entity";
 import { QuestionDocument } from "../questions/SCHEMA/question.schema";
+import { PaymentDocument } from "src/payment/SCHEMA/payment.schema";
+import { SubscriptionDocument } from "src/payment/SCHEMA/subscription.schema";
 
 @Injectable()
 export class SuperAdminService {
@@ -20,6 +19,10 @@ export class SuperAdminService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel("questions")
     private readonly questionsModel: Model<QuestionDocument>,
+    @InjectModel("payments")
+    private readonly paymentsModel: Model<PaymentDocument>,
+    @InjectModel("subscription")
+    private readonly subscriptionModel: Model<SubscriptionDocument>,
   ) {}
 
   async getAllOrganizations(body: any) {
@@ -128,6 +131,59 @@ export class SuperAdminService {
         this.testsModel.find(match).countDocuments(),
       ]);
       return { data, count };
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  async getOrganizationPayments(orgId: string, body: any) {
+    try {
+      const page = body?.page;
+      const limit = body?.limit;
+      const skip = page * limit - limit;
+      const match: any = {
+        ...body?.filter,
+        orgId: new Types.ObjectId(orgId),
+      };
+
+      const [data, count] = await Promise.all([
+        this.paymentsModel
+          .find(match)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        this.paymentsModel.find(match).countDocuments(),
+      ]);
+      return { data, count };
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  async getOrganizationSubscription(orgId: string, body: any) {
+    try {
+      const page = body?.page || 1;
+      const limit = body?.limit || 10;
+      const skip = page * limit - limit;
+      const match: any = {
+        ...body?.filter,
+        orgId: new Types.ObjectId(orgId),
+      };
+
+      const [data, count] = await Promise.all([
+        this.subscriptionModel
+          .find(match)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        this.subscriptionModel.find(match).countDocuments(),
+      ]);
+      return {
+        data,
+        count,
+      };
     } catch (error) {
       throw new Error(error);
     }

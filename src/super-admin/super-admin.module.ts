@@ -9,6 +9,7 @@ import { UserSchema } from "../user/entities/user.entity";
 import { OrganizationSchema } from "../auth/schema/organization.schema";
 import { SubscriptionSchema } from "../payment/SCHEMA/subscription.schema";
 import { QuestionSchema } from "../questions/SCHEMA/question.schema";
+import { PaymentSchema } from "src/payment/SCHEMA/payment.schema";
 
 @Module({
   imports: [
@@ -18,6 +19,8 @@ import { QuestionSchema } from "../questions/SCHEMA/question.schema";
       { name: "organizations", schema: OrganizationSchema },
       { name: "subscription", schema: SubscriptionSchema },
       { name: "questions", schema: QuestionSchema },
+      { name: "payments", schema: PaymentSchema },
+      { name: "subscriptions", schema: SubscriptionSchema },
     ]),
   ],
   controllers: [SuperAdminController],

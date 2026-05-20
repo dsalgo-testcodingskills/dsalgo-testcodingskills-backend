@@ -54,4 +54,20 @@ export class SuperAdminController {
   ) {
     return this.superAdminService.getOrganizationTests(id, body);
   }
+
+  @Post("organization/:id/payments")
+  getOrganizationPayments(
+    @Param("id") id: string,
+    @Body() body: getallTestsubmissionsDTO,
+  ) {
+    return this.superAdminService.getOrganizationPayments(id, body);
+  }
+
+  @Post("organization/:id/subscription")
+  getOrganizationSubscription(
+    @Param("id") id: string,
+    @Body() body: getallTestsubmissionsDTO,
+  ) {
+    return this.superAdminService.getOrganizationSubscription(id, body);
+  }
 }
