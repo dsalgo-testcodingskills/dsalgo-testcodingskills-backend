@@ -73,7 +73,6 @@ export class AuthGuard implements CanActivate {
     if (!authHeader) {
       throw new UnauthorizedException(`Authorization header is required`);
     }
-    console.log(authHeader);
     const tokenArray = authHeader.split(" ", 2);
     if (!tokenArray[0] || tokenArray[0].toLowerCase() !== "bearer") {
       throw new UnauthorizedException("Token type must be Bearer");
