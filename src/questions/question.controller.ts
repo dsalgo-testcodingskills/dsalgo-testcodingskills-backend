@@ -209,7 +209,7 @@ export class QuestionsController {
         },
       ];
 
-      body['organizationId'] = new Types.ObjectId(orgId);
+      body['organizationId'] = orgId;
       body['createdBy'] = request.payload.nickname;
       session = await this.questionsService.dbSession();
       await session.withTransaction(async () => {
@@ -220,7 +220,7 @@ export class QuestionsController {
           if (!isSuperAdminUser) {
           const updatedOrg = await this.authenticationService.updateOrganisation(
             { 
-              _id: new Types.ObjectId(orgId), 
+              _id: orgId, 
               subscriptionPlan: 'paid',
               availableCustomQuestions: { $gt: 0 }
             },
