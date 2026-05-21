@@ -143,7 +143,7 @@ export class SuperAdminService {
       const skip = page * limit - limit;
       const match: any = {
         ...body?.filter,
-        orgId: new Types.ObjectId(orgId),
+        "notes.organizationId": orgId,
       };
 
       const [data, count] = await Promise.all([
@@ -168,7 +168,7 @@ export class SuperAdminService {
       const skip = page * limit - limit;
       const match: any = {
         ...body?.filter,
-        orgId: new Types.ObjectId(orgId),
+        "notes.organizationId": orgId,
       };
 
       const [data, count] = await Promise.all([
