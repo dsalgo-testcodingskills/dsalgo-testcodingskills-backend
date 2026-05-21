@@ -79,6 +79,7 @@ jobs:
             FREE_USERS=${{ secrets.FREE_USERS }}
             FREE_CUSTOM_QUESTIONS=${{ secrets.FREE_CUSTOM_QUESTIONS }}
             PAID_CUSTOM_QUESTIONS=${{ secrets.PAID_CUSTOM_QUESTIONS }}
+            RAZOR_WEBHOOK_KEY=${{ secrets.RAZOR_WEBHOOK_KEY }}
 
       - name: Show Output URL
         run: |

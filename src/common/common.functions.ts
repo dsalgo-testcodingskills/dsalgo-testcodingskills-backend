@@ -620,3 +620,8 @@ export const isSuperAdmin = (request: any): boolean => {
     return false;
   }
 };
+
+export const isSubscriptionExpired = (sub) => {
+  const currentUnix = Math.floor(Date.now() / 1000);
+  return sub.status === 'active' && sub.current_end < currentUnix;
+};

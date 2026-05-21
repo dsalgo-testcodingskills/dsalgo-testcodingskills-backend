@@ -30,7 +30,7 @@ import { DIFFICULTY_LEVEL } from 'src/questions/question.types';
 import * as AWS from 'aws-sdk';
 import { UploadFileDto } from './DTO/uploadfile.DTO';
 import { UserService } from 'src/user/user.service';
-import { isSuperAdmin } from 'src/common/common.functions';
+import { isSubscriptionExpired, isSuperAdmin } from 'src/common/common.functions';
 
 const S3 = new AWS.S3({
   region: process.env.AWS_REGION || 'us-east-2',
@@ -63,8 +63,7 @@ export class TestController {
       const activeSub = subscriptionDetails?.[0];
 
       if (!isSuperAdminUser && activeSub) {
-        const currentUnix = Math.floor(Date.now() / 1000);
-        if (activeSub.status === 'active' && activeSub.end_at < currentUnix) {
+        if (isSubscriptionExpired(activeSub)) {
            return {
             message: 'Your subscription has expired, please renew to continue',
             statusCode: 402,

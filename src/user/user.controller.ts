@@ -20,7 +20,7 @@ import { UpdateOrganisationDto } from './dto/update-organisation.dto';
 import { UserRoleEnum, UserStatusEnum } from 'src/common/enum';
 import { Types } from 'mongoose';
 import { allowedSuperAdminDomains } from 'src/utils/role.config';
-import { isSuperAdmin } from 'src/common/common.functions';
+import { isSubscriptionExpired, isSuperAdmin } from 'src/common/common.functions';
 
 @Controller('user')
 export class UserController {
@@ -111,8 +111,7 @@ export class UserController {
       const activeSub = subscriptionDetails?.[0];
 
       if (!isSuperAdminUser && activeSub) {
-        const currentUnix = Math.floor(Date.now() / 1000);
-        if (activeSub.status === 'active' && activeSub.end_at < currentUnix) {
+        if (isSubscriptionExpired(activeSub)) {
           throw new Error('Your subscription has expired, please renew to continue');
         }
       }

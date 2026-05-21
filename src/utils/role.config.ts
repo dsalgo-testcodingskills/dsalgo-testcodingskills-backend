@@ -103,6 +103,7 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: "/payment/getSubscriptionDetails", method: "get" },
     { url: "/payment/getPaymentDetails", method: "get" },
     { url: "/payment/updateSubscriptionDetails", method: "patch" },
+    { url: "/payment/cancelSubscription", method: "post" },
   ],
   compiler: [
     { url: "/compiler/questions", method: "get" },

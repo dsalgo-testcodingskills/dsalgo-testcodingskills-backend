@@ -19,6 +19,7 @@ import { QuestionsService } from './question.service';
 import {
   checkTestCases,
   getDatatypeOfParamters,
+  isSubscriptionExpired,
   isSuperAdmin,
 } from '../common/common.functions';
 import {
@@ -69,8 +70,7 @@ export class QuestionsController {
         const activeSub = subscriptionDetails?.[0];
 
         if (activeSub) {
-          const currentUnix = Math.floor(Date.now() / 1000);
-          if (activeSub.status === 'active' && activeSub.end_at < currentUnix) {
+          if (isSubscriptionExpired(activeSub)) {
             return {
               message: 'Your subscription has expired, please renew to continue',
               statusCode: 402,

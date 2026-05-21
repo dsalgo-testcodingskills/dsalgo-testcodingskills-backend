@@ -186,6 +186,13 @@ export class PaymentController {
       const subscriptionDetails =
         await this.razorPayPaymentService.getSubsDetails(orgId);
 
+      if (!subscriptionDetails || subscriptionDetails.length === 0) {
+        throw new BadRequestException('No subscription found');
+      }
+
+      if (subscriptionDetails[0].status === 'cancelled') {
+        throw new BadRequestException('Subscription is already cancelled');
+      }
       const subscriptionId = subscriptionDetails[0].id;
       const data = await this.razorPayPaymentService.cancelSubscription(
         subscriptionId,
@@ -210,8 +217,8 @@ export class PaymentController {
         message: 'success',
         cancelData: result,
       };
-    } catch (error) {
-      throw new BadRequestException(error);
+    } catch (error:any) {
+      throw new BadRequestException(error.message);
     }
   }
   // Logic of cron

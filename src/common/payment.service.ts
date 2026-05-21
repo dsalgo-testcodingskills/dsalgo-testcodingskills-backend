@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRazorpay } from 'nestjs-razorpay';
 import * as crypto from 'crypto';
+import { RAZOR_WEBHOOK_KEY } from './enum';
 
 @Injectable()
 export class PaymentService{
@@ -23,7 +24,7 @@ export class PaymentService{
 
     //To verify the successfull payments
     async verifyPayment(body, razorpaySignature) {
-        const shasum = crypto.createHmac("sha256", "test@123");
+        const shasum = crypto.createHmac("sha256", RAZOR_WEBHOOK_KEY);
         shasum.update(JSON.stringify(body));
         const digest = shasum.digest("hex");
 
