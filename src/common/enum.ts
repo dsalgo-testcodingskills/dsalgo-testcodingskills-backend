@@ -17,3 +17,10 @@ export enum SubscriptionTypeEnum {
 export const PUBLIC_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com'];
 
 export const RAZOR_WEBHOOK_KEY=process.env.RAZOR_WEBHOOK_KEY ;
+
+export const subscriptionStatus = {
+  ACTIVE: 'active',
+  CANCELLED: 'cancelled',
+  CREATED: 'created',
+  COMPLETED: 'completed',
+};

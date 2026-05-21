@@ -16,6 +16,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 
 import { RazorPayPaymentService } from './payment.service';
+import { subscriptionStatus } from 'src/common/enum';
 
 @ApiTags('payment')
 @Controller('payment')
@@ -65,9 +66,14 @@ export class PaymentController {
 
       if (body.contains.includes('subscription')) {
         console.log('updating subscrptions', body.payload.subscription.entity);
-        await this.razorPayPaymentService.updateSubscription(
-          body.payload.subscription.entity,
-        );
+        const subEntity = body.payload.subscription.entity;
+        await this.razorPayPaymentService.updateSubscription(subEntity);
+
+        // If subscription is completed, reset limits
+        if (subEntity.status === subscriptionStatus.COMPLETED) {
+          console.log('Subscription completed, resetting limits for:', subEntity.notes.organizationId);
+          await this.razorPayPaymentService.resetLimits(subEntity.notes.organizationId);
+        }
       }
       if (body.contains.includes('payment')) {
         console.log('updating payments :>>', body.payload.payment.entity);
