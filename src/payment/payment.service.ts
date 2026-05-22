@@ -104,6 +104,25 @@ export class RazorPayPaymentService {
 
     return subscription;
   }
+  async createOrder(options) {
+    return await this.razorpayInstance.orders.create(options);
+  }
+
+  async processTopUp(payment) {
+    const orgId = payment.notes.organizationId;
+    const itemType = payment.notes.itemType;
+    const quantity = parseInt(payment.notes.quantity);
+
+    const updateQuery = itemType === 'test' 
+      ? { $inc: { availableTests: quantity } }
+      : { $inc: { availableCustomQuestions: quantity } };
+
+    await this.organizationModel.findOneAndUpdate(
+      { _id: Types.ObjectId.createFromHexString(orgId) },
+      updateQuery
+    );
+    await this.paymentModel.create(payment);
+  }
 
   //To verify the successfull payments
   async verifyRazorpayData(body, razorpaySignature) {

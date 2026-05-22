@@ -17,12 +17,17 @@ import { AuthGuard } from 'src/auth/auth.guard';
 
 import { RazorPayPaymentService } from './payment.service';
 import { subscriptionStatus } from 'src/common/enum';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { PricingSettings } from '../super-admin/entities/pricing-settings.schema';
+import { PAYMENT_TYPES } from '../utils/constants';
 
 @ApiTags('payment')
 @Controller('payment')
 export class PaymentController {
   constructor(
     private readonly razorPayPaymentService: RazorPayPaymentService,
+    @InjectModel('pricingSettings') private readonly pricingModel: Model<PricingSettings>,
   ) {}
 
   @UseGuards(AuthGuard)
@@ -46,8 +51,35 @@ export class PaymentController {
         };
 
       return subscription;
-    } catch (error) {
-      throw new BadRequestException(error.message);
+    } catch (error: any) {
+      throw new BadRequestException(error?.message);
+    }
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT')
+  @Post('/createOrder')
+  async createOrder(@Body() body: { type: 'test' | 'question', quantity: number }, @Req() request) {
+    try {
+      const pricing = await this.pricingModel.findOne() || { pricePerTest: 10, pricePerQuestion: 5 };
+      const price = body.type === 'test' ? pricing.pricePerTest : pricing.pricePerQuestion;
+      const amount = price * body.quantity * 100;
+
+      const order = await this.razorPayPaymentService.createOrder({
+        amount: amount,
+        currency: 'INR',
+        receipt: `receipt_${Date.now()}`,
+        notes: {
+          organizationId: request.payload['custom:orgId'],
+          type: PAYMENT_TYPES.ADD_ON,
+          itemType: body.type,
+          quantity: body.quantity,
+          perItemPrice: price,
+        }
+      });
+      return order;
+    } catch (error: any) {
+      throw new BadRequestException(error?.message);
     }
   }
 
@@ -63,9 +95,31 @@ export class PaymentController {
       );
       if (!valid)
         throw new HttpException('BAD_REQUEST', HttpStatus.BAD_REQUEST);
+      const webhookType = body.event?.includes('payment')
+        ? 'payment'
+        : body.event?.includes('subscription')
+          ? 'subscription'
+          : 'unknown';
 
+      console.log(
+        JSON.stringify({
+          webhook: webhookType,
+          event: body.event,
+          data: body,
+          payload: body.payload,
+          message: 'Webhook received successfully',
+        }),
+      );
+      if (body.contains.includes('payment')) {
+        const payment = body.payload.payment.entity;
+        
+        if (payment.notes?.type === PAYMENT_TYPES.ADD_ON) {
+          await this.razorPayPaymentService.processTopUp(payment);
+        } else {
+          await this.razorPayPaymentService.createPayment(payment);
+        }
+      }      
       if (body.contains.includes('subscription')) {
-        console.log('updating subscrptions', body.payload.subscription.entity);
         const subEntity = body.payload.subscription.entity;
         await this.razorPayPaymentService.updateSubscription(subEntity);
 
@@ -75,18 +129,13 @@ export class PaymentController {
           await this.razorPayPaymentService.resetLimits(subEntity.notes.organizationId);
         }
       }
-      if (body.contains.includes('payment')) {
-        console.log('updating payments :>>', body.payload.payment.entity);
-        await this.razorPayPaymentService.createPayment(
-          body.payload.payment.entity,
-        );
-      }
+      
       return {
         message: 'success',
         statusCode: 200,
       };
-    } catch (error) {
-      throw new BadRequestException(error.message);
+    } catch (error: any) {
+      throw new BadRequestException(error?.message);
     }
   }
 
@@ -204,7 +253,6 @@ export class PaymentController {
         subscriptionId,
         true,
       );
-      console.log(data.current_end);
       const abs = await this.razorPayPaymentService.unixToDate(
         parseInt(data.current_end.toString() + '000'),
       );
@@ -232,7 +280,6 @@ export class PaymentController {
   async cancelSubscriptionServices() {
     let cancelledData: any =
       await this.razorPayPaymentService.cancelSubSerivices();
-    console.log('canData>>', cancelledData);
     let orgId = null;
     let result = null;
 
@@ -241,16 +288,11 @@ export class PaymentController {
     let month = String(date.getMonth() + 1).padStart(2, '0');
     let year = date.getFullYear();
     let fullDate = day + '.' + month + '.' + year + '.';
-    console.log(fullDate);
 
     for (let i = 0; i < cancelledData.length; i++) {
-      console.log(cancelledData[i].endDateString);
-
       if (cancelledData[i].endDateString === fullDate) {
         orgId = cancelledData[i].notes.organizationId;
-
         result = await this.razorPayPaymentService.resetLimits(orgId);
-        console.log('result>>', result);
       }
     }
     return result;

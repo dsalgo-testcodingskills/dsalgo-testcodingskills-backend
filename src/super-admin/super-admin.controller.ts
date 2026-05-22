@@ -70,4 +70,13 @@ export class SuperAdminController {
   ) {
     return this.superAdminService.getOrganizationSubscription(id, body);
   }
+  @Get("pricing")
+  getPricing() {
+    return this.superAdminService.getPricing();
+  }
+
+  @Patch("pricing")
+  updatePricing(@Body() body: { pricePerTest: number, pricePerQuestion: number }) {
+    return this.superAdminService.updatePricing(body);
+  }
 }

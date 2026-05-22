@@ -7,6 +7,7 @@ import { UserDocument } from "../user/entities/user.entity";
 import { QuestionDocument } from "../questions/SCHEMA/question.schema";
 import { PaymentDocument } from "src/payment/SCHEMA/payment.schema";
 import { SubscriptionDocument } from "src/payment/SCHEMA/subscription.schema";
+import { PricingSettings } from "./entities/pricing-settings.schema";
 
 @Injectable()
 export class SuperAdminService {
@@ -23,6 +24,8 @@ export class SuperAdminService {
     private readonly paymentsModel: Model<PaymentDocument>,
     @InjectModel("subscription")
     private readonly subscriptionModel: Model<SubscriptionDocument>,
+    @InjectModel("pricingSettings")
+    private readonly pricingModel: Model<PricingSettings>,
   ) {}
 
   async getAllOrganizations(body: any) {
@@ -184,8 +187,24 @@ export class SuperAdminService {
         data,
         count,
       };
-    } catch (error) {
+    } catch (error:any) {
       throw new Error(error);
     }
+  }
+
+  async getPricing() {
+    let settings = await this.pricingModel.findOne();
+    if (!settings) {
+      settings = await this.pricingModel.create({ pricePerTest: 10, pricePerQuestion: 5 });
+    }
+    return settings;
+  }
+
+  async updatePricing(body: any) {
+    return await this.pricingModel.findOneAndUpdate(
+      {},
+      { $set: body },
+      { upsert: true, new: true }
+    );
   }
 }

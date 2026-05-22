@@ -31,6 +31,7 @@ import { config } from 'dotenv';
 import { PaymentSchema } from './payment/SCHEMA/payment.schema';
 import { PaymentController } from './payment/payment.controller';
 import { SubscriptionSchema } from './payment/SCHEMA/subscription.schema';
+import { PricingSettingsSchema } from './super-admin/entities/pricing-settings.schema';
 import { RazorPayPaymentService } from './payment/payment.service';
 import { UserSchema } from './user/entities/user.entity';
 import { UserController } from './user/user.controller';
@@ -57,6 +58,7 @@ config();
       { name: 'questions', schema: QuestionSchema },
       { name: 'payment', schema: PaymentSchema },
       { name: 'subscription', schema: SubscriptionSchema },
+      { name: 'pricingSettings', schema: PricingSettingsSchema },
     ]),
     SuperAdminModule,
   ],
