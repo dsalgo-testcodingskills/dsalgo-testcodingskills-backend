@@ -70,4 +70,9 @@ export class SuperAdminController {
   ) {
     return this.superAdminService.getOrganizationSubscription(id, body);
   }
+
+  @Post("getAllPayments")
+  getAllPayments(@Body() body: getallTestsubmissionsDTO) {
+    return this.superAdminService.getAllPayments(body);
+  }
 }

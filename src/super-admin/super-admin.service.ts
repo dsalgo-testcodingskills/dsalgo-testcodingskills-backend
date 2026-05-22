@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
+import { model, Model, Types } from "mongoose";
 import { TestDocument } from "../test/SCHEMA/test.schema";
 import { OrganizationDocument } from "../auth/schema/organization.schema";
 import { UserDocument } from "../user/entities/user.entity";
@@ -188,6 +188,36 @@ export class SuperAdminService {
           .limit(limit)
           .lean(),
         this.subscriptionModel.find(match).countDocuments(),
+      ]);
+      return {
+        data,
+        count,
+      };
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  async getAllPayments(body: any) {
+    try {
+      const page = body?.page || 1;
+      const limit = body?.limit || 10;
+      const skip = page * limit - limit;
+      const match: any = {};
+
+      const [data, count] = await Promise.all([
+        this.paymentsModel
+          .find(match)
+          .populate({
+            model: "organizations",
+            path: "notes.organizationId",
+            select: "name",
+          })
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        this.paymentsModel.find(match).countDocuments(),
       ]);
       return {
         data,
