@@ -30,9 +30,18 @@ export class SuperAdminService {
       const page = body?.page || 1;
       const limit = body?.limit || 10;
       const skip = page * limit - limit;
-      const match: any = {
-        ...body?.filter,
-      };
+      const match: any = {};
+
+      if (body?.filter?.name) {
+        match.name = {
+          $regex: body.filter.name,
+          $options: "i",
+        };
+      }
+
+      if (body?.filter?.subscriptionPlan) {
+        match.subscriptionPlan = body.filter.subscriptionPlan;
+      }
 
       const [data, count] = await Promise.all([
         this.orgModel
