@@ -79,4 +79,9 @@ export class SuperAdminController {
   updatePricing(@Body() body: { pricePerTest: number, pricePerQuestion: number }) {
     return this.superAdminService.updatePricing(body);
   }
+  
+  @Post("getAllPayments")
+  getAllPayments(@Body() body: getallTestsubmissionsDTO) {
+    return this.superAdminService.getAllPayments(body);
+  }
 }

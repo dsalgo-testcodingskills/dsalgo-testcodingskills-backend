@@ -124,6 +124,7 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: "/super-admin/organization/:id/tests", method: "post" },
     { url: "/super-admin/organization/:id/payments", method: "post" },
     { url: "/super-admin/organization/:id/subscription", method: "post" },
+    { url: "/super-admin/getAllPayments", method: "post" },
   ],
   common:[
     { url: "/super-admin/pricing", method: "get" },
