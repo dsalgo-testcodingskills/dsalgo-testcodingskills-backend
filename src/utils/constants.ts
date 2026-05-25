@@ -127,3 +127,8 @@ export enum QUESTION_OUTPUT_TYPE {
   STRING = 'string',
   FLOAT = 'float',
 }
+
+export const PAYMENT_TYPES = {
+  ADD_ON: 'add-on',
+  SUBSCRIPTION: 'subscription'
+};

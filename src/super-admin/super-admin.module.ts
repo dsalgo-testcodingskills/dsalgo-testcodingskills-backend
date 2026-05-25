@@ -7,8 +7,9 @@ import { AuthenticationService } from "../auth/authentication.service";
 import { UserService } from "../user/user.service";
 import { UserSchema } from "../user/entities/user.entity";
 import { OrganizationSchema } from "../auth/schema/organization.schema";
-import { SubscriptionSchema } from "../payment/SCHEMA/subscription.schema";
-import { QuestionSchema } from "../questions/SCHEMA/question.schema";
+import { PricingSettingsSchema } from "./entities/pricing-settings.schema";
+import { SubscriptionSchema } from "src/payment/SCHEMA/subscription.schema";
+import { QuestionSchema } from "src/questions/SCHEMA/question.schema";
 import { PaymentSchema } from "src/payment/SCHEMA/payment.schema";
 
 @Module({
@@ -21,6 +22,7 @@ import { PaymentSchema } from "src/payment/SCHEMA/payment.schema";
       { name: "questions", schema: QuestionSchema },
       { name: "payments", schema: PaymentSchema },
       { name: "subscriptions", schema: SubscriptionSchema },
+      { name: "pricingSettings", schema: PricingSettingsSchema },
     ]),
   ],
   controllers: [SuperAdminController],

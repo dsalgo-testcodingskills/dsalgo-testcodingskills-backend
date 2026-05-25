@@ -10,6 +10,7 @@ interface roleApiConfigInterF {
   question: Array<roleInterF>;
   compiler: Array<roleInterF>;
   super_admin: Array<roleInterF>;
+  common: Array<roleInterF>;
 }
 
 interface roleModuleConfigInterF {
@@ -19,6 +20,7 @@ interface roleModuleConfigInterF {
   question: boolean;
   compiler: boolean;
   super_admin: boolean;
+  common: boolean;
 }
 
 interface roleConfigInterF {
@@ -36,6 +38,7 @@ export const roleConfig: roleConfigInterF = {
     question: true,
     compiler: true,
     super_admin: true,
+    common: true,
   },
   admin: {
     user: true,
@@ -44,6 +47,7 @@ export const roleConfig: roleConfigInterF = {
     question: true,
     compiler: true,
     super_admin: false,
+    common: true,
   },
   user: {
     user: false,
@@ -52,6 +56,7 @@ export const roleConfig: roleConfigInterF = {
     question: true,
     compiler: true,
     super_admin: false,
+    common: true,
   },
 };
 
@@ -104,6 +109,7 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: "/payment/getPaymentDetails", method: "get" },
     { url: "/payment/updateSubscriptionDetails", method: "patch" },
     { url: "/payment/cancelSubscription", method: "post" },
+    { url: "/payment/createOrder", method: "post" },
   ],
   compiler: [
     { url: "/compiler/questions", method: "get" },
@@ -120,6 +126,9 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: "/super-admin/organization/:id/subscription", method: "post" },
     { url: "/super-admin/getAllPayments", method: "post" },
   ],
+  common:[
+    { url: "/super-admin/pricing", method: "get" },
+  ]
 };
 
 export const allowedSuperAdminDomains = ["code-b.dev"];
