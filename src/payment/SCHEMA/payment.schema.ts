@@ -44,7 +44,7 @@ export class Payment {
   international:boolean;
 
   @Prop({
-    type: String, index: { unique: true}
+    type: String,
   })
   order_id: string;
 
