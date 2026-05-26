@@ -8,7 +8,7 @@ import { InjectRazorpay } from 'nestjs-razorpay';
 import * as crypto from 'crypto';
 import { UserDocument } from 'src/user/entities/user.entity';
 import { PLAN_LIMITS } from 'src/common/plan-limits';
-import { RAZOR_WEBHOOK_KEY } from 'src/common/enum';
+import { RAZOR_WEBHOOK_KEY, SUBSCRIPTION_STATUS } from 'src/common/enum';
 
 @Injectable()
 export class RazorPayPaymentService {
@@ -29,39 +29,25 @@ export class RazorPayPaymentService {
     return this.subscriptionModel.db.startSession();
   }
 
-  async createPayment(payment) {
-    if (payment.notes.organizationId) {
-      return await this.paymentModel.create(payment, async (err, result) => {
-        if (!err) {
-          const createdData = await this.organizationModel.findOneAndUpdate(
-            {
-              _id: Types.ObjectId.createFromHexString(
-                payment.notes.organizationId,
-              ),
-            },
-            {
-              $inc: {
-                availableTests: PLAN_LIMITS.paid.tests,
-                noOfUsers: PLAN_LIMITS.paid.users,
-                availableCustomQuestions: PLAN_LIMITS.paid.customQuestions,
-              },
-              $set: { subscriptionPlan: 'paid' },
-            },
-            { new: true },
-          );
-          console.log('createdData after new payment :>> ', createdData);
-        }
-      });
-    } else if (payment.email) {
-      return await this.paymentModel.create(payment, async (err, result) => {
-        if (!err) {
-          const orgId = await this.userModel.findOne(
-            { emailId: payment.email },
-            { orgId: 1 },
-          );
+  async recordPayment(payment) {
+    return await this.paymentModel.findOneAndUpdate(
+      { id: payment.id },
+      { $set: payment },
+      { upsert: true, new: true }
+    );
+  }
+
+  async processSubscriptionPayment(payment) {
+    let orgId = payment.notes?.organizationId;
+    if (!orgId && payment.email) {
+      const user = await this.userModel.findOne({ emailId: payment.email }, { orgId: 1 });
+      orgId = user?.orgId;
+    }
+
+    if (orgId) {
           const updatedData = await this.organizationModel.findOneAndUpdate(
             {
-              _id: Types.ObjectId.createFromHexString(orgId.orgId),
+              _id: Types.ObjectId.createFromHexString(orgId)
             },
             {
               $inc: {
@@ -73,9 +59,8 @@ export class RazorPayPaymentService {
             },
             { new: true },
           );
-          console.log('updatedData after recurring payment:>> ', updatedData);
-        }
-      });
+          console.log('Organization limits updated after successful subscription payment:', orgId);
+      return updatedData;
     }
   }
 
@@ -94,9 +79,7 @@ export class RazorPayPaymentService {
       options,
     );
     let orgId = organizationId;
-    let subcheck = await this.subscriptionModel.findOne({
-      notes: { organizationId: orgId },
-    });
+    let subcheck = await this.subscriptionModel.findOne({ "notes.organizationId": orgId });
 
     if (!subcheck) {
       let subcreate = await this.subscriptionModel.create(subscription);
@@ -109,19 +92,23 @@ export class RazorPayPaymentService {
   }
 
   async processTopUp(payment) {
-    const orgId = payment.notes.organizationId;
-    const itemType = payment.notes.itemType;
-    const quantity = parseInt(payment.notes.quantity);
+    const orgId = payment.notes?.organizationId;
+    const itemType = payment.notes?.itemType;
+    const quantity = parseInt(payment.notes?.quantity || '0');
+
+    if (!orgId) return;
 
     const updateQuery = itemType === 'test' 
       ? { $inc: { availableTests: quantity } }
       : { $inc: { availableCustomQuestions: quantity } };
 
-    await this.organizationModel.findOneAndUpdate(
+    const updated = await this.organizationModel.findOneAndUpdate(
       { _id: Types.ObjectId.createFromHexString(orgId) },
-      updateQuery
+      updateQuery,
+      { new: true }
     );
-    await this.paymentModel.create(payment);
+    console.log(`Add-on limits updated (${itemType} x ${quantity}) for:`, orgId);
+    return updated;
   }
 
   //To verify the successfull payments
@@ -150,23 +137,29 @@ export class RazorPayPaymentService {
   }
 
   async getSubsDetails(orgId) {
-    return this.subscriptionModel.find({
-      notes: { organizationId: orgId },
-    });
+    return this.subscriptionModel.find({ "notes.organizationId": orgId });
   }
 
-  async getPaymentDetails(orgId) {
-    return this.paymentModel
-      .find({
-        notes: { organizationId: orgId },
-      })
-      .sort({ createdAt: -1 });
+  async getPaymentDetails(orgId, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    
+    const [data, total] = await Promise.all([
+      this.paymentModel
+        .find({ "notes.organizationId": orgId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.paymentModel.countDocuments({ "notes.organizationId": orgId })
+    ]);
+
+    return { data, total };
   }
 
   async updateSubscriptionStatus(orgId) {
     return await this.subscriptionModel.findOneAndUpdate(
-      { notes: { organizationId: orgId } },
-      { $set: { status: 'active' } },
+      { "notes.organizationId": orgId },
+      { $set: { status: SUBSCRIPTION_STATUS.ACTIVE } },
     );
   }
 
@@ -199,7 +192,7 @@ export class RazorPayPaymentService {
   }
 
   async cancelSubSerivices() {
-    return this.subscriptionModel.find({ status: 'cancelled' });
+    return this.subscriptionModel.find({ status: SUBSCRIPTION_STATUS.CANCELLED });
   }
 
   async resetLimits(orgId) {

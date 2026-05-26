@@ -128,7 +128,7 @@ export enum QUESTION_OUTPUT_TYPE {
   FLOAT = 'float',
 }
 
-export const PAYMENT_TYPES = {
-  ADD_ON: 'add-on',
-  SUBSCRIPTION: 'subscription'
-};
+export enum PAYMENT_TYPES {
+  ADD_ON = 'add-on',
+  SUBSCRIPTION = 'subscription',
+}

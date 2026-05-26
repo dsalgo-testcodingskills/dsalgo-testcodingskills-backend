@@ -56,8 +56,6 @@ export class UserService {
     return this.userModel.findByIdAndDelete(id);
   }
   getSubscription(orgId) {
-    return this.subscriptionModel.find({
-      notes: { organizationId: orgId },
-    });
+    return this.subscriptionModel.find({ "notes.organizationId": orgId });
   }
 }
