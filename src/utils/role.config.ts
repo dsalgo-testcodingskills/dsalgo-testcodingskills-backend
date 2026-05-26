@@ -125,10 +125,9 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: "/super-admin/organization/:id/payments", method: "post" },
     { url: "/super-admin/organization/:id/subscription", method: "post" },
     { url: "/super-admin/getAllPayments", method: "post" },
+    { url: "/super-admin/pricing", method: "patch" },
   ],
-  common:[
-    { url: "/super-admin/pricing", method: "get" },
-  ]
+  common: [{ url: "/super-admin/pricing", method: "get" }],
 };
 
 export const allowedSuperAdminDomains = ["code-b.dev"];

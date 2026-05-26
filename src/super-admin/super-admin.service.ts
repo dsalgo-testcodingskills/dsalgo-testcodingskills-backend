@@ -201,7 +201,7 @@ export class SuperAdminService {
     }
   }
 
-  async getPricing() {
+  async getAddOnPricing() {
     let settings = await this.pricingModel.findOne();
     if (!settings) {
       settings = await this.pricingModel.create({
@@ -212,7 +212,7 @@ export class SuperAdminService {
     return settings;
   }
 
-  async updatePricing(body: any) {
+  async updateAddOnPricing(body: any) {
     return await this.pricingModel.findOneAndUpdate(
       {},
       { $set: body },

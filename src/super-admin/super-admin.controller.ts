@@ -72,14 +72,16 @@ export class SuperAdminController {
   }
   @Get("pricing")
   getPricing() {
-    return this.superAdminService.getPricing();
+    return this.superAdminService.getAddOnPricing();
   }
 
   @Patch("pricing")
-  updatePricing(@Body() body: { pricePerTest: number, pricePerQuestion: number }) {
-    return this.superAdminService.updatePricing(body);
+  updatePricing(
+    @Body() body: { pricePerTest: number; pricePerQuestion: number },
+  ) {
+    return this.superAdminService.updateAddOnPricing(body);
   }
-  
+
   @Post("getAllPayments")
   getAllPayments(@Body() body: getallTestsubmissionsDTO) {
     return this.superAdminService.getAllPayments(body);
