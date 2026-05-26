@@ -263,7 +263,10 @@ export class UserController {
       const userRole = request.payload['custom:role'];
       const userOrgId = request.payload['custom:orgId'];
 
-      if (userRole !== UserRoleEnum.ADMIN) {
+      if (
+        userRole !== UserRoleEnum.ADMIN &&
+        userRole !== UserRoleEnum.SUPER_ADMIN
+      ) {
         return { message: 'Unauthorized role access' };
       }
 
