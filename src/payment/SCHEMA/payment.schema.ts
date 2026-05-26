@@ -71,7 +71,28 @@ export class Payment {
   @Prop({
     type: Object,
   })
-  notes: object;
+  notes: any;
+
+  @Prop({ type: String })
+  error_code: string;
+
+  @Prop({ type: String })
+  error_description: string;
+
+  @Prop({ type: String })
+  error_source: string;
+
+  @Prop({ type: String })
+  error_step: string;
+
+  @Prop({ type: String })
+  error_reason: string;
+
+  @Prop({ type: Number })
+  fee: number;
+
+  @Prop({ type: Number })
+  tax: number;
 }
 export const PaymentSchema = SchemaFactory.createForClass(Payment);
 PaymentSchema.index({ id: 1 });

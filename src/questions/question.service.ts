@@ -136,8 +136,6 @@ export class QuestionsService {
   }
 
   getSubsDetails(orgId) {
-    return this.subscriptionModel.find({
-      notes: { organizationId: orgId },
-    });
+    return this.subscriptionModel.find({ "notes.organizationId": orgId });
   }
 }

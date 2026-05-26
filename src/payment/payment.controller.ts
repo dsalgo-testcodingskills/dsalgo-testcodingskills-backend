@@ -11,12 +11,13 @@ import {
   HttpStatus,
   HttpException,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/auth/auth.guard';
 
 import { RazorPayPaymentService } from './payment.service';
-import { subscriptionStatus } from 'src/common/enum';
+import { SUBSCRIPTION_STATUS } from 'src/common/enum';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PricingSettings } from '../super-admin/entities/pricing-settings.schema';
@@ -113,10 +114,16 @@ export class PaymentController {
       if (body.contains.includes('payment')) {
         const payment = body.payload.payment.entity;
         
-        if (payment.notes?.type === PAYMENT_TYPES.ADD_ON) {
-          await this.razorPayPaymentService.processTopUp(payment);
-        } else {
-          await this.razorPayPaymentService.createPayment(payment);
+        // always update the payment attempt details (status, errors, etc)
+        await this.razorPayPaymentService.recordPayment(payment);
+
+        // process actual limit increments only if payment is successfully captured
+        if (body.event === 'payment.captured') {
+          if (payment.notes?.type === PAYMENT_TYPES.ADD_ON) {
+            await this.razorPayPaymentService.processTopUp(payment);
+          } else {
+            await this.razorPayPaymentService.processSubscriptionPayment(payment);
+          }
         }
       }      
       if (body.contains.includes('subscription')) {
@@ -124,7 +131,7 @@ export class PaymentController {
         await this.razorPayPaymentService.updateSubscription(subEntity);
 
         // If subscription is completed, reset limits
-        if (subEntity.status === subscriptionStatus.COMPLETED) {
+        if (subEntity.status === SUBSCRIPTION_STATUS.COMPLETED) {
           console.log('Subscription completed, resetting limits for:', subEntity.notes.organizationId);
           await this.razorPayPaymentService.resetLimits(subEntity.notes.organizationId);
         }
@@ -183,14 +190,13 @@ export class PaymentController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT')
   @Get('getPaymentDetails')
-  async getPaymentDetails(@Req() request) {
+  async getPaymentDetails(@Req() request, @Query('page') page: number = 1, @Query('limit') limit: number = 10) {
     try {
       let orgId = request.payload['custom:orgId'];
 
-      const paymentDetails =
-        await this.razorPayPaymentService.getPaymentDetails(orgId);
+      const result = await this.razorPayPaymentService.getPaymentDetails(orgId, page, limit);
 
-      if (!paymentDetails) {
+      if (!result.data || result.data.length === 0) {
         return {
           statusCode: 204,
           message: 'No Payments found',
@@ -200,10 +206,13 @@ export class PaymentController {
       return {
         statusCode: 200,
         message: 'success',
-        data: paymentDetails,
+        paymentDetails: result.data,
+        total: result.total,
+        page,
+        limit,
       };
-    } catch (error) {
-      throw new BadRequestException(error);
+    } catch (error: any) {
+      throw new BadRequestException(error?.message);
     }
   }
 
@@ -245,7 +254,7 @@ export class PaymentController {
         throw new BadRequestException('No subscription found');
       }
 
-      if (subscriptionDetails[0].status === 'cancelled') {
+      if (subscriptionDetails[0].status === SUBSCRIPTION_STATUS.CANCELLED) {
         throw new BadRequestException('Subscription is already cancelled');
       }
       const subscriptionId = subscriptionDetails[0].id;
@@ -260,7 +269,7 @@ export class PaymentController {
       const result = await this.razorPayPaymentService.updateSubOnCancellation(
         { id: subscriptionId },
         {
-          status: 'cancelled',
+          status: SUBSCRIPTION_STATUS.CANCELLED,
           endDateString: abs,
           current_end: data.current_end,
         },

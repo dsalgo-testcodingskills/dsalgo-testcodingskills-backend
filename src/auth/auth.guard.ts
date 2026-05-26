@@ -28,7 +28,7 @@ export class AuthGuard implements CanActivate {
 
     // request meta for endpoint authorization
     const reqMeta = {
-      url: request.url,
+      url: request.path,
       method: request.method,
       params: request["params"],
       body: request.body,
