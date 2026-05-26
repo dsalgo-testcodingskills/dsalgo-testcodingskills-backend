@@ -732,6 +732,13 @@ export class TestController {
       const orgDetails = await this.authenticationService.getOrganisation({
         _id: request.payload['custom:orgId'],
       });
+
+      if (orgDetails?.organizationLogo) {
+        orgDetails.organizationLogo = this.testService.getPresignedUrl(
+          orgDetails.organizationLogo,
+        );
+      }
+
       return {
         userInfo,
         orgDetails,

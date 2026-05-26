@@ -196,7 +196,7 @@ export class SuperAdminService {
         data,
         count,
       };
-    } catch (error:any) {
+    } catch (error: any) {
       throw new Error(error);
     }
   }
@@ -204,7 +204,10 @@ export class SuperAdminService {
   async getPricing() {
     let settings = await this.pricingModel.findOne();
     if (!settings) {
-      settings = await this.pricingModel.create({ pricePerTest: 10, pricePerQuestion: 5 });
+      settings = await this.pricingModel.create({
+        pricePerTest: 10,
+        pricePerQuestion: 5,
+      });
     }
     return settings;
   }
@@ -213,16 +216,41 @@ export class SuperAdminService {
     return await this.pricingModel.findOneAndUpdate(
       {},
       { $set: body },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
   }
-  
+
   async getAllPayments(body: any) {
     try {
       const page = body?.page || 1;
       const limit = body?.limit || 10;
       const skip = page * limit - limit;
       const match: any = {};
+
+      if (body?.filter?.fromDate || body?.filter?.toDate) {
+        match.createdAt = {};
+        if (body.filter.fromDate) {
+          match.createdAt.$gte = new Date(body.filter.fromDate);
+        }
+        if (body.filter.toDate) {
+          const toDate = new Date(body.filter.toDate);
+          toDate.setHours(23, 59, 59, 999);
+          match.createdAt.$lte = toDate;
+        }
+      }
+
+      if (body?.filter?.name) {
+        const organizations = await this.orgModel.find({
+          name: {
+            $regex: body.filter.name,
+            $options: "i",
+          },
+        });
+
+        match["notes.organizationId"] = {
+          $in: organizations.map((org) => org._id.toString()),
+        };
+      }
 
       const [data, count] = await Promise.all([
         this.paymentsModel
