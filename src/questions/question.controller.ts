@@ -14,7 +14,12 @@ import {
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Types } from 'mongoose';
 import { AuthGuard } from 'src/auth/auth.guard';
-import { getQuestionsDTO, createCustomQuestionDTO } from './DTO/question.dto';
+import {
+  getQuestionsDTO,
+  createCustomQuestionDTO,
+  validateReferenceSolutionDTO,
+  publishQuestionDTO,
+} from './DTO/question.dto';
 import { QuestionsService } from './question.service';
 import {
   checkTestCases,
@@ -32,6 +37,7 @@ import {
   TYPESCRIPT_SOLUTION_TEMPLATE,
 } from 'src/utils/constants';
 import { AuthenticationService } from 'src/auth/authentication.service';
+import { CompilerService } from 'src/compiler/compiler.service';
 
 @UseGuards(AuthGuard)
 @ApiBearerAuth('JWT')
@@ -40,7 +46,105 @@ export class QuestionsController {
   constructor(
     private readonly questionsService: QuestionsService,
     private readonly authenticationService: AuthenticationService,
+    private readonly compilerService: CompilerService,
   ) {}
+
+  private generateSolutionTemplates(inputType: any[], outputType: string) {
+    let cpp_params = '';
+    let java_params = '';
+    let py_js_params = '';
+    let go_params = '';
+    let csharp_params = '';
+    let ts_params = '';
+
+    for (const param of inputType) {
+      cpp_params    += `${getDatatypeOfParamters('cpp', param.type)} ${param.paramName},`;
+      java_params   += `${getDatatypeOfParamters('java', param.type)} ${param.paramName},`;
+      py_js_params  += `${param.paramName},`;
+      go_params      = `${param.paramName} ${getDatatypeOfParamters('go', param.type)},`;
+      csharp_params += `${getDatatypeOfParamters('csharp', param.type)} ${param.paramName},`;
+      ts_params     += `${param.paramName}: ${getDatatypeOfParamters('typescript', param.type)},`;
+    }
+
+    // Remove trailing commas
+    cpp_params    = cpp_params.replace(/,$/g, '');
+    java_params   = java_params.replace(/,$/g, '');
+    py_js_params  = py_js_params.replace(/,$/g, '');
+    go_params     = go_params.replace(/.$/g, '');
+    csharp_params = csharp_params.replace(/,$/g, '');
+    ts_params     = ts_params.replace(/,$/g, '');
+
+    return [
+      {
+        language: 'cpp',
+        code: CPP_SOLUTION_TEMPLATE
+          .replace('return_type', getDatatypeOfParamters('cpp', outputType))
+          .replace('parameters', cpp_params),
+      },
+      {
+        language: 'java',
+        code: JAVA_SOLUTION_TEMPLATE
+          .replace('return_type', getDatatypeOfParamters('java', outputType))
+          .replace('parameters', java_params),
+      },
+      {
+        language: 'python',
+        code: PYTHON_SOLUTION_TEMPLATE.replace('parameters', py_js_params),
+      },
+      {
+        language: 'javascript',
+        code: JAVASCRIPT_SOLUTION_TEMPLATE.replace('parameters', py_js_params),
+      },
+      {
+        language: 'go',
+        code: GO_SOLUTION_TEMPLATE
+          .replace('return_type', getDatatypeOfParamters('go', outputType))
+          .replace('parameters', go_params),
+      },
+      {
+        language: 'csharp',
+        code: CSHARP_SOLUTION_TEMPLATE
+          .replace('return_type', getDatatypeOfParamters('csharp', outputType))
+          .replace('parameters', csharp_params),
+      },
+      {
+        language: 'typescript',
+        code: TYPESCRIPT_SOLUTION_TEMPLATE
+          .replace('return_type', getDatatypeOfParamters('typescript', outputType))
+          .replace('parameters', ts_params),
+      },
+    ];
+  }
+
+  private async checkSubscription(orgId: Types.ObjectId, isSuperAdminUser: boolean, org: any) {
+    if (isSuperAdminUser) return null; // super admin bypasses all checks
+
+    const subscriptionDetails = await this.questionsService.getSubsDetails(orgId);
+    const activeSub = subscriptionDetails?.[0];
+
+    if (activeSub && isSubscriptionExpired(activeSub)) {
+      return {
+        message: 'Your subscription has expired, please renew to continue',
+        statusCode: 402,
+      };
+    }
+
+    if (org?.subscriptionPlan === 'free') {
+      return {
+        message: 'No custom questions allowed on free plan',
+        statusCode: 402,
+      };
+    }
+
+    if (org?.subscriptionPlan === 'paid' && org.availableCustomQuestions <= 0) {
+      return {
+        message: 'You have used all custom questions, upgrade your plan to create more',
+        statusCode: 402,
+      };
+    }
+
+    return null; // all checks passed
+  }
 
   @Post('getQuestion')
   getQuestions(@Body() body: getQuestionsDTO, @Req() request) {
@@ -50,6 +154,9 @@ export class QuestionsController {
     return this.questionsService.getQuestions(body);
   }
 
+  // Questions are now saved as 'draft' by default.
+  // Admin must call validateReferenceSolution -> publishQuestion to make
+  // the question available for tests.
   @Post('createCustomQuestion')
   @UsePipes(ValidationPipe)
   async createCustomQuestion(
@@ -58,157 +165,20 @@ export class QuestionsController {
   ) {
     let session = null;
     try {
-      let orgId = new Types.ObjectId(request.payload['custom:orgId']);
+      const orgId = new Types.ObjectId(request.payload['custom:orgId']);
       const isSuperAdminUser = isSuperAdmin(request);
-      const org = await this.authenticationService.getOrganisation({
-        _id: orgId,
-      });
-      
-      // skip plan checks for super admin
-      if (!isSuperAdminUser) {
-        const subscriptionDetails = await this.questionsService.getSubsDetails(orgId);
-        const activeSub = subscriptionDetails?.[0];
+      const org = await this.authenticationService.getOrganisation({ _id: orgId });
+      const subscriptionError = await this.checkSubscription(orgId, isSuperAdminUser, org);
+      if (subscriptionError) return subscriptionError;
 
-        if (activeSub) {
-          if (isSubscriptionExpired(activeSub)) {
-            return {
-              message: 'Your subscription has expired, please renew to continue',
-              statusCode: 402,
-            };
-          }
-        }
-
-      if (org && org.subscriptionPlan === 'free') {
-        return {
-          message: 'no custom question for free plan',
-          statusCode: 402,
-        };
-      }
-      
-      if (org && org.subscriptionPlan === 'paid' && org.availableCustomQuestions <= 0) {
-        return {
-          message:
-            'You have used all Custom Questions, upgrade your plan to create more',
-          statusCode: 402,
-        };
-      }
-      }
-
-      //Check for each test case whether valid or not
       let isValid;
-      console.log(body);
       [isValid, body] = checkTestCases(body);
-
       if (!isValid) return body;
 
-      //Check for reserve Keyword in parameters
-
-      //Generate solution templates for each language.
-      //Create parameter string for each language to be inserted in solution template.
-      let cpp_solution_params = '';
-      let java_solution_params = '';
-      let python_javascript_solution_params = '';
-      let go_solution_params = '';
-      let csharp_solution_params = '';
-      let typescript_solution_params = '';
-      for (const param of body.inputType) {
-        cpp_solution_params =
-          cpp_solution_params +
-          getDatatypeOfParamters('cpp', param.type) +
-          ' ' +
-          param.paramName +
-          ',';
-        java_solution_params =
-          java_solution_params +
-          getDatatypeOfParamters('java', param.type) +
-          ' ' +
-          param.paramName +
-          ',';
-        python_javascript_solution_params =
-          python_javascript_solution_params + param.paramName + ',';
-
-        go_solution_params =
-          param.paramName +
-          ' ' +
-          getDatatypeOfParamters('go', param.type) +
-          ',';
-          
-        csharp_solution_params =
-          csharp_solution_params +
-          getDatatypeOfParamters('csharp', param.type) +
-          ' ' +
-          param.paramName +
-          ',';
-          
-        typescript_solution_params =
-          typescript_solution_params +
-          param.paramName +
-          ': ' +
-          getDatatypeOfParamters('typescript', param.type) +
-          ',';
-      }
-      //Remove comma from end of string
-      cpp_solution_params = cpp_solution_params.replace(/,$/g, '');
-      java_solution_params = java_solution_params.replace(/,$/g, '');
-      python_javascript_solution_params =
-        python_javascript_solution_params.replace(/,$/g, '');
-      go_solution_params = go_solution_params.replace(/.$/g, '');
-      csharp_solution_params = csharp_solution_params.replace(/,$/g, '');
-      typescript_solution_params = typescript_solution_params.replace(/,$/g, '');
-
-      //Replacing return type with outputType and parameters with generated params, inside the solution template.
-      body['solutionTemplates'] = [
-        {
-          language: 'cpp',
-          code: CPP_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('cpp', body.outputType),
-          ).replace('parameters', cpp_solution_params),
-        },
-        {
-          language: 'java',
-          code: JAVA_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('java', body.outputType),
-          ).replace('parameters', java_solution_params),
-        },
-        {
-          language: 'python',
-          code: PYTHON_SOLUTION_TEMPLATE.replace(
-            'parameters',
-            python_javascript_solution_params,
-          ),
-        },
-        {
-          language: 'javascript',
-          code: JAVASCRIPT_SOLUTION_TEMPLATE.replace(
-            'parameters',
-            python_javascript_solution_params,
-          ),
-        },
-        {
-          language: 'go',
-          code: GO_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('go', body.outputType),
-          ).replace('parameters', go_solution_params),
-        },
-        {
-          language: 'csharp',
-          code: CSHARP_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('csharp', body.outputType),
-          ).replace('parameters', csharp_solution_params),
-        },
-        {
-          language: 'typescript',
-          code: TYPESCRIPT_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('typescript', body.outputType),
-          ).replace('parameters', typescript_solution_params),
-        },
-      ];
-
+      // Generate solution templates
+      body['solutionTemplates'] = this.generateSolutionTemplates(body.inputType, body.outputType);
+      // Always start as draft — must be verified before publishing
+      body['status'] = 'draft';
       body['organizationId'] = orgId;
       body['createdBy'] = request.payload.nickname;
       session = await this.questionsService.dbSession();
@@ -216,7 +186,6 @@ export class QuestionsController {
         try {
           await this.questionsService.createCustomQuestion(body, session);
 
-          // only decrement quota for non-super-admin users
           if (!isSuperAdminUser) {
           const updatedOrg = await this.authenticationService.updateOrganisation(
             { 
@@ -238,7 +207,7 @@ export class QuestionsController {
       });
 
       return {
-        message: 'Question created successfully',
+        message: 'Question saved as draft. Add a reference solution to publish it.',
         statusCode: 200,
         data: null,
       };
@@ -256,117 +225,13 @@ export class QuestionsController {
     @Req() request,
     @Body() body: createCustomQuestionDTO,
   ) {
-    try {    
+    try {
       let isValid;
       [isValid, body] = checkTestCases(body);
-
       if (!isValid) return body;
-      let cpp_solution_params = '';
-      let java_solution_params = '';
-      let python_javascript_solution_params = '';
-      let go_solution_params = '';
-      let csharp_solution_params = '';
-      let typescript_solution_params = '';
-      for (const param of body.inputType) {
-        cpp_solution_params =
-          cpp_solution_params +
-          getDatatypeOfParamters('cpp', param.type) +
-          ' ' +
-          param.paramName +
-          ',';
-        java_solution_params =
-          java_solution_params +
-          getDatatypeOfParamters('java', param.type) +
-          ' ' +
-          param.paramName +
-          ',';
-        python_javascript_solution_params =
-          python_javascript_solution_params + param.paramName + ',';
 
-        go_solution_params =
-          param.paramName +
-          ' ' +
-          getDatatypeOfParamters('go', param.type) +
-          ',';
-
-        csharp_solution_params =
-          csharp_solution_params +
-          getDatatypeOfParamters('csharp', param.type) +
-          ' ' +
-          param.paramName +
-          ',';
-
-        typescript_solution_params =
-          typescript_solution_params +
-          param.paramName +
-          ': ' +
-          getDatatypeOfParamters('typescript', param.type) +
-          ',';
-      }
-      cpp_solution_params = cpp_solution_params.replace(/,$/g, '');
-      java_solution_params = java_solution_params.replace(/,$/g, '');
-      python_javascript_solution_params =
-        python_javascript_solution_params.replace(/,$/g, '');
-      go_solution_params = go_solution_params.replace(/.$/g, '');
-      csharp_solution_params = csharp_solution_params.replace(/,$/g, '');
-      typescript_solution_params = typescript_solution_params.replace(/,$/g, '');
-
-
-      body['solutionTemplates'] = [
-        {
-          language: 'cpp',
-          code: CPP_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('cpp', body.outputType),
-          ).replace('parameters', cpp_solution_params),
-        },
-        {
-          language: 'java',
-          code: JAVA_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('java', body.outputType),
-          ).replace('parameters', java_solution_params),
-        },
-        {
-          language: 'python',
-          code: PYTHON_SOLUTION_TEMPLATE.replace(
-            'parameters',
-            python_javascript_solution_params,
-          ),
-        },
-        {
-          language: 'javascript',
-          code: JAVASCRIPT_SOLUTION_TEMPLATE.replace(
-            'parameters',
-            python_javascript_solution_params,
-          ),
-        },
-        {
-          language: 'go',
-          code: GO_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('go', body.outputType),
-          ).replace('parameters', go_solution_params),
-        },
-        {
-          language: 'csharp',
-          code: CSHARP_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('csharp', body.outputType),
-          ).replace('parameters', csharp_solution_params),
-        },
-        {
-          language: 'typescript',
-          code: TYPESCRIPT_SOLUTION_TEMPLATE.replace(
-            'return_type',
-            getDatatypeOfParamters('typescript', body.outputType),
-          ).replace('parameters', typescript_solution_params),
-        },
-      ];
-
-      body['organizationId'] = new Types.ObjectId(
-        request.payload['custom:orgId'],
-      );
+      body['solutionTemplates'] = this.generateSolutionTemplates(body.inputType, body.outputType);
+      body['organizationId'] = new Types.ObjectId(request.payload['custom:orgId']);
       body['createdBy'] = request.payload.nickname;
 
       return {
@@ -379,6 +244,135 @@ export class QuestionsController {
     }
   }
 
+  // admin writes a solution and submits it here.
+  // We run it against ALL test cases (manual + edge + stress) via Judge0.
+  // If all pass -> saves reference solution on question.
+  // If any fail -> returns which test cases failed so admin can fix them.
+  // Admin then calls publishQuestion to make it live.
+  @Post('validateReferenceSolution')
+  @UsePipes(ValidationPipe)
+  async validateReferenceSolution(
+    @Req() request,
+    @Body() body: validateReferenceSolutionDTO,
+  ) {
+    try {
+      const question = await this.questionsService.findById(body.questionId);
+
+      if (!question) {
+        throw new BadRequestException('Question not found');
+      }
+
+      if (String(question.organizationId) !== request.payload['custom:orgId']) {
+        throw new BadRequestException('You do not have permission to validate this question');
+      }
+
+      if (question.status === 'published') {
+        throw new BadRequestException('Question is already published');
+      }
+
+      const results = await this.compilerService.compileAndRun(
+        body.referenceSolution.language as any,
+        body.referenceSolution.code,
+        question,
+        '', // dirPath no longer needed after Judge0 integration
+      );
+
+      const allPassed = results.every((r: any) => r.result === true);
+      const failedCases = results
+        .map((r: any, i: number) => ({ ...r, index: i }))
+        .filter((r: any) => r.result === false);
+
+      if (!allPassed) {
+        return {
+          message: 'Reference solution failed some test cases. Please fix before publishing.',
+          statusCode: 400,
+          data: {
+            totalTestCases: results.length,
+            passed: results.length - failedCases.length,
+            failed: failedCases.length,
+            failedCases: failedCases.map((f) => ({
+              index: f.index,
+              logs: f.logs,
+              actualOutput: f.actualOutput,
+              // only show input for non-hidden test cases
+              input: question.testCases[f.index]?.hidden
+                ? '[hidden]'
+                : question.testCases[f.index]?.input,
+            })),
+          },
+        };
+      }
+
+      await this.questionsService.findAndUpdateCustomQuestion(body.questionId, {
+        referenceSolution: body.referenceSolution,
+      });
+
+      return {
+        message: 'Reference solution verified successfully. You can now publish the question.',
+        statusCode: 200,
+        data: {
+          totalTestCases: results.length,
+          passed: results.length,
+          failed: 0,
+          // return time/memory stats so admin can fine-tune constraints
+          executionStats: results.map((r: any, i: number) => ({
+            testCase: i + 1,
+            time: r.time,
+            memory: r.memory,
+          })),
+        },
+      };
+    } catch (error) {
+      throw new BadRequestException(error?.message || error);
+    }
+  }
+
+  // after reference solution is verified.
+  // Published questions become available for tests.
+  @Post('publishQuestion')
+  @UsePipes(ValidationPipe)
+  async publishQuestion(
+    @Req() request,
+    @Body() body: publishQuestionDTO,
+  ) {
+    try {
+      const question = await this.questionsService.findById(body.questionId);
+
+      if (!question) {
+        throw new BadRequestException('Question not found');
+      }
+
+      if (String(question.organizationId) !== request.payload['custom:orgId']) {
+        throw new BadRequestException('You do not have permission to publish this question');
+      }
+
+      if (!question.referenceSolution) {
+        throw new BadRequestException(
+          'Please verify a reference solution before publishing. Call validateReferenceSolution first.',
+        );
+      }
+
+      if (question.status === 'published') {
+        throw new BadRequestException('Question is already published');
+      }
+
+      await this.questionsService.findAndUpdateCustomQuestion(body.questionId, {
+        status: 'published',
+      });
+
+      return {
+        message: 'Question published successfully',
+        statusCode: 200,
+        data: null,
+      };
+    } catch (error) {
+      throw new BadRequestException(error?.message || error);
+    }
+  }
+
+  // When a published question is edited, it goes back to draft
+  // so admin must re-verify reference solution before re-publishing.
+  // this prevents broken questions from going live after edits.
   @Patch('/updateCustomQuestion/:id')
   async update(@Param('id') id: string, @Body() body: any, @Req() request) {
     try {
@@ -388,24 +382,23 @@ export class QuestionsController {
       }
 
       if (String(existingQuestion.organizationId) !== request.payload['custom:orgId']) {
-        throw new BadRequestException(
-          'You cannot edit the question that is not added by you.',
-        );
+        throw new BadRequestException('You cannot edit a question that was not created by your organization');
       }
-      //Check for each test case whether valid or not
+
       let isValid;
       [isValid, body] = checkTestCases(body);
-
       if (!isValid) return body;
 
-      const result = await this.questionsService.findAndUpdateCustomQuestion(
-        id,
-        body,
-      );
+      // reset to draft on edit — must re-verify before publishing again
+      body['status'] = 'draft';
+      body['referenceSolution'] = null; // clear old reference solution
+
+      const result = await this.questionsService.findAndUpdateCustomQuestion(id, body);
+
       return {
         code: 200,
         error: null,
-        message: 'Success',
+        message: 'Question updated and moved back to draft. Please re-verify before publishing.',
         data: result,
       };
     } catch (error) {
@@ -414,11 +407,7 @@ export class QuestionsController {
   }
 
   @Post('custom-question-find')
-  async find(
-    @Req() request,
-    @Body()
-    body: any,
-  ) {
+  async find(@Req() request, @Body() body: any) {
     const result = await this.questionsService.find(
       body,
       request.payload['custom:orgId'],

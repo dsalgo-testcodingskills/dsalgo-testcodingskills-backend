@@ -12,7 +12,7 @@ import {
 export type QuestionDocument = Question & mongoose.Document;
 
 export interface sampleCodeInterface {
-  langauge: string;
+  language: string;
   code: string;
 }
 
