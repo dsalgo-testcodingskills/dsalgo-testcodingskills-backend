@@ -1,77 +1,154 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  IsString,
+  IsEnum,
+  ValidateNested,
+  Min,
+  Max,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { Types } from 'mongoose';
 import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE } from 'src/utils/constants';
-import { DIFFICULTY_LEVEL, testCase } from '../question.types';
+import { DIFFICULTY_LEVEL, testCase,QUESTION_STATUS} from '../question.types';
 
 export interface CustomQuestionTestCase {
   hidden: boolean;
   input: string;
   output: string;
+  type?: 'manual' | 'edge' | 'stress';
 }
 
-export class createQuestionDTO {
-  organizationId: Types.ObjectId; // will be retrieved from token
+// all fields optional because different input types use different fields.
+// backend validates which fields are relevant based on the parent input type.
+//
+// array_int / array_char   -> minSize, maxSize, minValue, maxValue
+// 2d_array_int             -> minRows, maxRows, minCols, maxCols, minValue, maxValue
+// int / float              -> minValue, maxValue
+// string                   -> minLength, maxLength
+// boolean                  -> no constraints needed
+export class InputConstraintsDTO {
+  @ApiProperty({ required: false, description: 'Min array length (1D arrays)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  minSize?: number;
 
-  createdBy: string; //will be retrieved from token
+  @ApiProperty({ required: false, description: 'Max array length (1D arrays)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  maxSize?: number;
 
-  @ApiProperty({ required: true })
-  @IsNotEmpty()
-  level: DIFFICULTY_LEVEL;
+  @ApiProperty({ required: false, description: 'Min rows (2D arrays)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  minRows?: number;
 
-  @ApiProperty({ required: true })
-  @IsNotEmpty()
-  question: string;
+  @ApiProperty({ required: false, description: 'Max rows (2D arrays)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  maxRows?: number;
 
-  @ApiProperty({ required: true })
-  @IsNotEmpty()
-  sampleQuestion: boolean;
+  @ApiProperty({ required: false, description: 'Min columns (2D arrays)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  minCols?: number;
 
-  @ApiProperty({ required: true })
-  @IsNotEmpty()
-  instructions: string;
+  @ApiProperty({ required: false, description: 'Max columns (2D arrays)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  maxCols?: number;
 
-  @ApiProperty({ required: true })
-  @IsNotEmpty()
-  testCases: testCase[];
+  @ApiProperty({ required: false, description: 'Min numeric value' })
+  @IsOptional()
+  @IsNumber()
+  minValue?: number;
 
-  @ApiProperty({ required: true })
-  @IsNotEmpty()
-  public: boolean;
+  @ApiProperty({ required: false, description: 'Max numeric value' })
+  @IsOptional()
+  @IsNumber()
+  maxValue?: number;
 
-  @ApiProperty({ required: true })
-  @IsNotEmpty()
-  inputType: QUESTION_INPUT_TYPE;
+  @ApiProperty({ required: false, description: 'Min string length' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  minLength?: number;
 
-  @ApiProperty({ required: true })
-  @IsNotEmpty()
-  outputType: QUESTION_OUTPUT_TYPE;
+  @ApiProperty({ required: false, description: 'Max string length' })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  maxLength?: number;
 }
 
-export class getQuestionsDTO {
-  @ApiProperty({ required: false })
-  public?: boolean;
-
-  @ApiProperty({ required: false })
+export class InputTypeWithConstraintsDTO {
+  @ApiProperty({ required: true })
   @IsNotEmpty()
-  questionId?: string;
+  @IsString()
+  type: string;
 
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  @IsString()
+  paramName: string;
+
+  // Constraints are optional — if not provided, edge/stress cases won't be generated
+  // for this parameter. Question can still be created and published.
   @ApiProperty({ required: false })
-  sampleQuestion?: boolean;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InputConstraintsDTO)
+  constraints?: InputConstraintsDTO;
+}
 
-  @ApiProperty({ required: false })
-  limit?: number;
+export class QuestionConstraintsDTO {
+  @ApiProperty({
+    required: false,
+    description: 'Time limit in seconds. Default: 2',
+    default: 2,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(10)
+  timeLimit?: number;
 
-  @ApiProperty({ required: false })
-  level?: DIFFICULTY_LEVEL;
+  @ApiProperty({
+    required: false,
+    description: 'Memory limit in MB. Default: 256',
+    default: 256,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(64)
+  @Max(512)
+  memoryLimit?: number;
+}
 
-  organizationId: Types.ObjectId; // will be retrieved from token
+export class ReferenceSolutionDTO {
+  @ApiProperty({ required: true, description: 'Language of reference solution' })
+  @IsNotEmpty()
+  @IsString()
+  language: string;
+
+  @ApiProperty({ required: true, description: 'Reference solution code' })
+  @IsNotEmpty()
+  @IsString()
+  code: string;
 }
 
 export class createCustomQuestionDTO {
-  organizationId: Types.ObjectId; // will be retrieved from token
-
-  createdBy: string; //will be retrieved from token
+  organizationId: Types.ObjectId;
+  createdBy: string;
 
   @ApiProperty({ required: true })
   @IsNotEmpty()
@@ -102,9 +179,107 @@ export class createCustomQuestionDTO {
   @IsNotEmpty()
   public: boolean;
 
+  @ApiProperty({ required: true, type: [InputTypeWithConstraintsDTO] })
+  @IsNotEmpty()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => InputTypeWithConstraintsDTO)
+  inputType: InputTypeWithConstraintsDTO[];
+
   @ApiProperty({ required: true })
   @IsNotEmpty()
-  inputType: QUESTION_INPUT_TYPE[];
+  outputType: QUESTION_OUTPUT_TYPE;
+
+  @ApiProperty({ required: false, type: QuestionConstraintsDTO })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => QuestionConstraintsDTO)
+  constraints?: QuestionConstraintsDTO;
+
+  // always starts as 'draft' — set by backend, never by frontend
+  status?: QUESTION_STATUS;
+
+  // solution templates are auto generated by backend — never sent by frontend
+  solutionTemplates?: any[];
+}
+
+export class validateReferenceSolutionDTO {
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  @IsString()
+  questionId: string;
+
+  @ApiProperty({ required: true, type: ReferenceSolutionDTO })
+  @IsNotEmpty()
+  @ValidateNested()
+  @Type(() => ReferenceSolutionDTO)
+  referenceSolution: ReferenceSolutionDTO;
+}
+
+// separate from creation — admin explicitly publishes after verification
+export class publishQuestionDTO {
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  @IsString()
+  questionId: string;
+}
+
+export class getQuestionsDTO {
+  @ApiProperty({ required: false })
+  public?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsNotEmpty()
+  questionId?: string;
+
+  @ApiProperty({ required: false })
+  sampleQuestion?: boolean;
+
+  @ApiProperty({ required: false })
+  limit?: number;
+
+  @ApiProperty({ required: false })
+  level?: DIFFICULTY_LEVEL;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsEnum(['draft', 'published', 'archived'])
+  status?: QUESTION_STATUS;
+
+  organizationId: Types.ObjectId;
+}
+
+export class createQuestionDTO {
+  organizationId: Types.ObjectId;
+  createdBy: string;
+
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  level: DIFFICULTY_LEVEL;
+
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  question: string;
+
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  sampleQuestion: boolean;
+
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  instructions: string;
+
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  testCases: testCase[];
+
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  public: boolean;
+
+  @ApiProperty({ required: true })
+  @IsNotEmpty()
+  inputType: QUESTION_INPUT_TYPE;
 
   @ApiProperty({ required: true })
   @IsNotEmpty()
