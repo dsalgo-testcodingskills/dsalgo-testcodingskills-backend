@@ -15,6 +15,10 @@ import {
   TEST_CODE_FOR_CSHARP,
   TEST_CODE_FOR_TYPESCRIPT,
   TEST_LANGUAGES,
+  JUDGE0_LANGUAGE_IDS,
+  MAX_POLL_ATTEMPTS,
+  POLL_INTERVAL_MS,
+  JUDGE0_IN_PROGRESS_STATUSES,
 } from '../utils/constants';
 import { getDatatypeOfParamters } from '../common/common.functions';
 
@@ -356,12 +360,9 @@ export class CompilerService {
     language: TEST_LANGUAGES,
     code: string,
     question,
-    dirPath: string,
   ) {
     try {
-      let solution_code = '';
-      const testCaseResults = [];
-      solution_code =
+    const solution_code =
         language === 'go'
           ? TEST_CODE_FOR_GO.replace('SOLUTION_METHOD', code)
           : language === 'cpp'
@@ -377,61 +378,212 @@ export class CompilerService {
           : language === 'typescript'
           ? TEST_CODE_FOR_TYPESCRIPT.replace('SOLUTION_METHOD', code)
           : '';
-      for (let i = 0; i < question.testCases.length; i++) {
-        let invocationCode = await this.getInvocationCode(
-          language,
-          question,
-          i,
-        );
-        let sourceCode = solution_code.replace('INVOCATION', invocationCode);
-        let fileName =
-          language === 'go'
-            ? `testCase${i}.go`
-            : language === 'python'
-            ? `testCase${i}.py`
-            : language === 'javascript'
-            ? `testCase${i}.js`
-            : language === 'java'
-            ? `testCase${i}.java`
-            : language === 'csharp'
-            ? `testCase${i}.cs`
-            : language === 'typescript'
-            ? `testCase${i}.ts`
-            : `testCase${i}.cpp`;
-        fileName = path.join(dirPath, fileName);
+       if (!solution_code) throw new Error(`Unsupported language: ${language}`);
+       const languageId=JUDGE0_LANGUAGE_IDS[language]
+             if (!languageId) throw new Error(`No Judge0 language ID found for: ${language}`);
+      const submissions = await Promise.all(
+        question.testCases.map(async (_, i) => {
+          const invocationCode = await this.getInvocationCode(language, question, i);
+          const sourceCode = solution_code.replace('INVOCATION', invocationCode);
+          return { source_code: sourceCode, language_id: languageId };
+        }),
+      );
+      const timeLimit   = question.constraints?.timeLimit   ?? 2;
+      const memoryLimit = question.constraints?.memoryLimit ?? 256;
+      const tokens = await this.submitBatchToJudge0(submissions, timeLimit, memoryLimit);
+      console.log("🚀 ~ CompilerService ~ compileAndRun ~ tokens:", tokens)
+      const judge0Results = await this.pollBatchResults(tokens);
 
-        //g++ -o main.exe hello.cpp   | 'python hello.py' | 'node hello.js' | 'javac hello.java' & 'java hello' | go run hello.go
-        let executeCommand =
-          language === 'go'
-            ? `go run ${fileName}`
-            : language === 'python'
-            ? `python3 ${fileName}`
-            : language === 'javascript'
-            ? `node ${fileName}`
-            : language === 'cpp'
-            ? `g++ -o ${path.join(
-                dirPath,
-                `testCase${i}`,
-              )} ${fileName} && ${path.join(dirPath, `testCase${i}`)}`
-            : language === 'csharp'
-            ? `mcs ${fileName} && mono ${path.join(dirPath, `testCase${i}.exe`)}`
-            : language === 'typescript'
-            ? `tsc ${fileName} && node ${path.join(dirPath, `testCase${i}.js`)}`
-            : `javac ${fileName} && java -cp ${dirPath} Solution`;
-        let writeToFileStatus = await this.writeToFile(fileName, sourceCode);
-        if (writeToFileStatus) {
-          let result = await this.executeCode(
-            executeCommand,
-            question,
-            i,
-            language,
-          );
-          testCaseResults.push(result);
-        } else return [];
-      }
+      const testCaseResults = await Promise.all(
+        judge0Results.map((result, i) =>
+          this.processJudge0Result(result, question, i, language),
+        ),
+      );
+     
       return testCaseResults;
     } catch (error) {
       return error.message;
     }
   }
+
+  private async submitBatchToJudge0(
+    submissions: { source_code: string; language_id: number }[],
+    timeLimit: number = 2,
+    memoryLimit: number = 256,
+  ) {
+    const response = await fetch(`${process.env.JUDGE0_API_URL}/submissions/batch?base64_encoded=false`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        submissions: submissions.map((s) => ({
+          ...s,
+          cpu_time_limit: timeLimit,            // from question.constraints.timeLimit has to implement in frontend
+          memory_limit: memoryLimit * 1024,     // MB -> KB (Judge0 expects KB)
+          enable_network: false,                
+        })),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Judge0 batch submission failed: ${response.statusText}`);
+    }
+
+    // returns array of { token } objects, one per submission
+    const tokens: { token: string }[] = await response.json();
+    return tokens.map((t) => t.token);
+  }
+
+
+
+  // poll Judge0 until all test cases are done 
+  // Judge0 processes submissions asynchronously. We poll every second
+  // until all results are ready or we hit the timeout.
+  private async pollBatchResults(tokens: string[]) {
+    const tokenList = tokens.join(',');
+
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+      await new Promise((res) => setTimeout(res, POLL_INTERVAL_MS));
+
+      const response = await fetch(
+        `${process.env.JUDGE0_API_URL}/submissions/batch?tokens=${tokenList}&base64_encoded=false&fields=token,stdout,stderr,compile_output,status,time,memory`,
+        
+      );
+
+      if (!response.ok) {
+        throw new Error(`Judge0 polling failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const submissions = data.submissions;
+
+      // Check if all submissions are done (no longer in queue or processing)
+      const allDone = submissions.every(
+        (s) => !JUDGE0_IN_PROGRESS_STATUSES.has(s.status?.id),
+      );
+
+      if (allDone) return submissions;
+    }
+
+    throw new Error('Judge0 timed out waiting for results');
+  }
+
+  // process a single Judge0 result into our response format 
+  private async processJudge0Result(judge0Result, question, testCaseIndex, language) {
+    const status = judge0Result.status?.id;
+
+    //compilation error
+    if (status === 6) {
+      return {
+        result: false,
+        logs: judge0Result.compile_output || 'Compilation error',
+        hidden: question.testCases[testCaseIndex].hidden,
+        actualOutput: '',
+        time: judge0Result.time,
+        memory: judge0Result.memory,
+      };
+    }
+
+    // time limit exceeded
+    if (status === 5) {
+      return {
+        result: false,
+        logs: 'Time Limit Exceeded',
+        hidden: question.testCases[testCaseIndex].hidden,
+        actualOutput: '',
+        time: judge0Result.time,
+        memory: judge0Result.memory,
+      };
+    }
+
+    // runtime error, memory limit exceeded etc.
+    if (status >= 7) {
+      return {
+        result: false,
+        logs: judge0Result.stderr || judge0Result.status?.description || 'Runtime error',
+        hidden: question.testCases[testCaseIndex].hidden,
+        actualOutput: '',
+        time: judge0Result.time,
+        memory: judge0Result.memory,
+      };
+    }
+
+    // accepted — compare output
+    const stdout = judge0Result.stdout || '';
+    const [userLogs, userOutput] = stdout.split('<logsOutputSeprator>');
+
+    const convertedOutput = await this.getConvertedOutput(
+      userOutput ? userOutput.trim() : '',
+      question.outputType,
+      language,
+    );
+
+    // use compareOutputs with outputConstraints instead of simple JSON.stringify
+    // this handles: isOrdered, tolerance, caseSensitive
+    const isCorrect = this.compareOutputs(
+      convertedOutput,
+      question.testCases[testCaseIndex].output,
+      question.outputType,
+      question.outputConstraints,
+    );
+
+    return {
+      result: isCorrect,
+      logs: userLogs || '',
+      hidden: question.testCases[testCaseIndex].hidden,
+      actualOutput: userOutput ? userOutput.trim() : '',
+      time: judge0Result.time,
+      memory: judge0Result.memory,
+    };
+  }
+ // Handles:
+  //   isOrdered: false  -> sort both arrays before comparing (Two Sum etc.)
+  //   tolerance         -> float comparison with tolerance e.g. ±0.001
+  //   caseSensitive     -> string comparison case sensitivity
+  private compareOutputs(
+    actual: any,
+    expected: any,
+    outputType: string,
+    outputConstraints: any, // has to implement in frontend
+  ): boolean {
+    const isOrdered     = outputConstraints?.isOrdered     ?? true;
+    const tolerance     = outputConstraints?.tolerance     ?? 0;
+    const caseSensitive = outputConstraints?.caseSensitive ?? true;
+
+    // float with tolerance 
+    if (outputType === 'float') {
+      const actualNum   = parseFloat(actual);
+      const expectedNum = parseFloat(expected);
+      if (isNaN(actualNum) || isNaN(expectedNum)) return false;
+      return Math.abs(actualNum - expectedNum) <= tolerance;
+    }
+
+    // string with case sensitivity 
+    if (outputType === 'string') {
+      if (!caseSensitive) {
+        return String(actual).toLowerCase() === String(expected).toLowerCase();
+      }
+      return String(actual) === String(expected);
+    }
+
+    //  array with order sensitivity 
+    if (outputType === 'array_int' || outputType === 'array_char') {
+      if (!Array.isArray(actual) || !Array.isArray(expected)) return false;
+      if (actual.length !== expected.length) return false;
+
+      if (!isOrdered) {
+        // sort both before comparing — handles Two Sum [0,1] vs [1,0]
+        const sortedActual   = [...actual].sort((a, b) => (a > b ? 1 : -1));
+        const sortedExpected = [...expected].sort((a, b) => (a > b ? 1 : -1));
+        return JSON.stringify(sortedActual) === JSON.stringify(sortedExpected);
+      }
+
+      return JSON.stringify(actual) === JSON.stringify(expected);
+    }
+
+    //  default: strict equality 
+    return JSON.stringify(actual) === JSON.stringify(expected);
+  }
+
 }

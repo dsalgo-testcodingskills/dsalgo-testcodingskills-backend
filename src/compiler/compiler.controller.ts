@@ -39,15 +39,7 @@ export class CompilerController {
   async compile(@Req() request, @Body() body: CompileCodeDTO) {
     try{
         const question = await this.compilerService.getQuestion(body.questionId);
-        const dirPath = path.join(__dirname,'compilation',body.testId,body.questionId);
-        
-        const isPresent = fs.existsSync(dirPath); //check if compilation path exists
-    
-        if (!isPresent) {
-            fs.mkdirSync(dirPath,{ recursive: true });
-        }
-        
-        const allOutputs = await this.compilerService.compileAndRun(body.language,body.code,question,dirPath);
+        const allOutputs = await this.compilerService.compileAndRun(body.language,body.code,question);
 
         return allOutputs;
     } catch (error) {
@@ -59,13 +51,5 @@ export class CompilerController {
         HttpStatus.EXPECTATION_FAILED,
       );
     }
-    finally {
-        try {
-          fs.rmdir(path.join(__dirname,'compilation',body.testId),{recursive:true,maxRetries:2,retryDelay:3000},(error)=>{
-            console.log(error);
-          });
-        } catch (err) {
-        }
-      }
   }
 }
