@@ -1,12 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as mongoose from 'mongoose';
-import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE } from 'src/utils/constants';
+import { QUESTION_OUTPUT_TYPE } from 'src/utils/constants';
 import {
-  DIFFICULTY_LEVEL,
-  testCase,
-  InputTypeWithConstraints,
-  QuestionConstraints,
-  QUESTION_STATUS,
+  DIFFICULTY_LEVEL, testCase, InputTypeWithConstraints,
+  QuestionConstraints, OutputConstraints, QUESTION_STATUS,
 } from '../question.types';
 
 export type QuestionDocument = Question & mongoose.Document;
@@ -50,50 +47,38 @@ export class Question {
   @Prop()
   solutionTemplates: sampleCodeInterface[];
 
-  // inputType now carries constraints per parameter
-  // using Mixed type because constraints shape varies per input type
-  // (array needs size, int needs value range, string needs length etc.)
+  // inputType carries full per-parameter constraints ──
   @Prop({ type: mongoose.Schema.Types.Mixed })
   inputType?: InputTypeWithConstraints[];
 
-  @Prop()
-  outputType?: QUESTION_OUTPUT_TYPE;
+  @Prop() outputType?: QUESTION_OUTPUT_TYPE;
 
-  //  question level constraints
+  //  question level constraints 
   @Prop({
-    type: {
-      timeLimit: { type: Number, default: 2 },
-      memoryLimit: { type: Number, default: 256 },
-    },
-    default: {
-      timeLimit: 2,
-      memoryLimit: 256,
-    },
+    type: { timeLimit: { type: Number, default: 2 }, memoryLimit: { type: Number, default: 256 } },
+    default: { timeLimit: 2, memoryLimit: 256 },
   })
   constraints?: QuestionConstraints;
 
-  //  question status
-  // Questions start as 'draft' and must be verified before publishing.
-  // Admin writes a reference solution -> runs against all test cases ->
-  // if all pass -> status becomes 'published' -> available for tests
+  // controls how output comparison works during test case evaluation.
+  // isOrdered: false -> sort both arrays before comparing (Two Sum etc.)
+  // tolerance: 0.001 -> float comparison with tolerance
+  // caseSensitive: false -> case insensitive string comparison
   @Prop({
-    type: String,
-    enum: ['draft', 'published', 'archived'],
-    default: 'draft',
+    type: {
+      isOrdered:     { type: Boolean, default: true  },
+      tolerance:     { type: Number,  default: 0     },
+      caseSensitive: { type: Boolean, default: true  },
+    },
+    default: { isOrdered: true, tolerance: 0, caseSensitive: true },
   })
+  outputConstraints?: OutputConstraints;
+
+  @Prop({ type: String, enum: ['draft','published','archived'], default: 'draft' })
   status?: QUESTION_STATUS;
 
-  //  reference solution
-  // admin's verified correct solution.
-  // Used to:
-  //   1. Verify question is solvable before publishing
-  //   2. Auto generate expected outputs for edge/stress test cases
-  //   3. Future: compare candidate approach with reference approach
   @Prop({ type: mongoose.Schema.Types.Mixed })
-  referenceSolution?: {
-    language: string;   // which language admin used to verify
-    code: string;       // the actual solution code
-  };
+  referenceSolution?: { language: string; code: string; };
 }
 
 export const QuestionSchema = SchemaFactory.createForClass(Question);

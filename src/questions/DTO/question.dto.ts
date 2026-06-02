@@ -1,131 +1,146 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsArray,
-  IsNotEmpty,
-  IsOptional,
-  IsNumber,
-  IsString,
-  IsEnum,
-  ValidateNested,
-  Min,
-  Max,
+  IsArray, IsNotEmpty, IsOptional, IsNumber,
+  IsString, IsEnum, IsBoolean, ValidateNested,
+  Min, Max, IsIn, Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Types } from 'mongoose';
 import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE } from 'src/utils/constants';
-import { DIFFICULTY_LEVEL, testCase,QUESTION_STATUS} from '../question.types';
+import { DIFFICULTY_LEVEL, testCase, QUESTION_STATUS } from '../question.types';
 
 export interface CustomQuestionTestCase {
   hidden: boolean;
   input: string;
   output: string;
-  type?: 'manual' | 'edge' | 'stress';
+
 }
 
-// all fields optional because different input types use different fields.
-// backend validates which fields are relevant based on the parent input type.
-//
-// array_int / array_char   -> minSize, maxSize, minValue, maxValue
-// 2d_array_int             -> minRows, maxRows, minCols, maxCols, minValue, maxValue
-// int / float              -> minValue, maxValue
-// string                   -> minLength, maxLength
-// boolean                  -> no constraints needed
-export class InputConstraintsDTO {
-  @ApiProperty({ required: false, description: 'Min array length (1D arrays)' })
+export class AllowedCharsDTO {
+  @ApiProperty({ required: false, enum: ['lowercase','uppercase','digits','alphanumeric','lowercase_digits','spaces','all'] })
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  minSize?: number;
+  @IsIn(['lowercase','uppercase','digits','alphanumeric','lowercase_digits','spaces','all'])
+  preset?: string;
 
-  @ApiProperty({ required: false, description: 'Max array length (1D arrays)' })
+  @ApiProperty({ required: false, description: 'Custom regex pattern e.g. ^[a-z0-9_]+$' })
   @IsOptional()
-  @IsNumber()
-  @Min(1)
-  maxSize?: number;
-
-  @ApiProperty({ required: false, description: 'Min rows (2D arrays)' })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  minRows?: number;
-
-  @ApiProperty({ required: false, description: 'Max rows (2D arrays)' })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  maxRows?: number;
-
-  @ApiProperty({ required: false, description: 'Min columns (2D arrays)' })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  minCols?: number;
-
-  @ApiProperty({ required: false, description: 'Max columns (2D arrays)' })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  maxCols?: number;
-
-  @ApiProperty({ required: false, description: 'Min numeric value' })
-  @IsOptional()
-  @IsNumber()
-  minValue?: number;
-
-  @ApiProperty({ required: false, description: 'Max numeric value' })
-  @IsOptional()
-  @IsNumber()
-  maxValue?: number;
-
-  @ApiProperty({ required: false, description: 'Min string length' })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  minLength?: number;
-
-  @ApiProperty({ required: false, description: 'Max string length' })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  maxLength?: number;
+  @IsString()
+  customRegex?: string;
 }
 
+export class ArrayIntConstraintsDTO {
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(0) minSize?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(1) maxSize?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() canBeEmpty?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() minElement?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() maxElement?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isSorted?: boolean;
+  @ApiProperty({ required: false, enum: ['asc','desc'] }) @IsOptional() @IsIn(['asc','desc']) sortOrder?: string;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isUnique?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isPositiveOnly?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isNonNegative?: boolean;
+}
+
+export class ArrayCharConstraintsDTO {
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(0) minSize?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(1) maxSize?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() canBeEmpty?: boolean;
+  @ApiProperty({ required: false, type: AllowedCharsDTO }) @IsOptional() @ValidateNested() @Type(() => AllowedCharsDTO) allowedChars?: AllowedCharsDTO;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isUnique?: boolean;
+}
+
+export class TwoDArrayIntConstraintsDTO {
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(0) minRows?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(1) maxRows?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(0) minCols?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(1) maxCols?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() canBeEmpty?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() minElement?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() maxElement?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isSquare?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isSorted?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isSymmetric?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isPositiveOnly?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isNonNegative?: boolean;
+}
+
+export class TwoDArrayCharConstraintsDTO {
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(0) minRows?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(1) maxRows?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(0) minCols?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(1) maxCols?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() canBeEmpty?: boolean;
+  @ApiProperty({ required: false, type: AllowedCharsDTO }) @IsOptional() @ValidateNested() @Type(() => AllowedCharsDTO) allowedChars?: AllowedCharsDTO;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isSquare?: boolean;
+}
+
+export class IntConstraintsDTO {
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() minValue?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() maxValue?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isPositiveOnly?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isNonNegative?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isNonZero?: boolean;
+}
+
+export class FloatConstraintsDTO {
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() minValue?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() maxValue?: number;
+  @ApiProperty({ required: false, description: 'Max decimal places e.g. 2' }) @IsOptional() @IsNumber() @Min(0) @Max(10) decimalPrecision?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isPositiveOnly?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isNonNegative?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isNonZero?: boolean;
+}
+
+export class StringConstraintsDTO {
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(0) minLength?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsNumber() @Min(1) maxLength?: number;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() canBeEmpty?: boolean;
+  @ApiProperty({ required: false, type: AllowedCharsDTO }) @IsOptional() @ValidateNested() @Type(() => AllowedCharsDTO) allowedChars?: AllowedCharsDTO;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isPalindrome?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() isUnique?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() hasSpaces?: boolean;
+  @ApiProperty({ required: false }) @IsOptional() @IsBoolean() caseSensitive?: boolean;
+}
+
+export class OutputConstraintsDTO {
+  @ApiProperty({ required: false, description: 'Does order matter for array output? Default: true' })
+  @IsOptional() @IsBoolean()
+  isOrdered?: boolean;
+
+  @ApiProperty({ required: false, description: 'Acceptable float tolerance e.g. 0.001. Default: 0' })
+  @IsOptional() @IsNumber() @Min(0)
+  tolerance?: number;
+
+  @ApiProperty({ required: false, description: 'Case sensitive string comparison? Default: true' })
+  @IsOptional() @IsBoolean()
+  caseSensitive?: boolean;
+}
+
+// uses a flat constraints object — backend picks relevant fields by type
 export class InputTypeWithConstraintsDTO {
   @ApiProperty({ required: true })
-  @IsNotEmpty()
-  @IsString()
+  @IsNotEmpty() @IsString()
   type: string;
 
   @ApiProperty({ required: true })
-  @IsNotEmpty()
-  @IsString()
+  @IsNotEmpty() @IsString()
   paramName: string;
 
-  // Constraints are optional — if not provided, edge/stress cases won't be generated
-  // for this parameter. Question can still be created and published.
+  // single flat constraints object — all fields optional
+  // backend validates which fields apply based on type
   @ApiProperty({ required: false })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => InputConstraintsDTO)
-  constraints?: InputConstraintsDTO;
+  constraints?: any;
 }
 
 export class QuestionConstraintsDTO {
-  @ApiProperty({
-    required: false,
-    description: 'Time limit in seconds. Default: 2',
-    default: 2,
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(10)
+  @ApiProperty({ required: false, default: 2 })
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
   timeLimit?: number;
 
   @ApiProperty({
     required: false,
-    description: 'Memory limit in MB. Default: 256',
-    default: 256,
+    default: 256
   })
   @IsOptional()
   @IsNumber()
@@ -135,20 +150,20 @@ export class QuestionConstraintsDTO {
 }
 
 export class ReferenceSolutionDTO {
-  @ApiProperty({ required: true, description: 'Language of reference solution' })
-  @IsNotEmpty()
-  @IsString()
+  @ApiProperty({ required: true })
+  @IsNotEmpty() @IsString()
   language: string;
 
-  @ApiProperty({ required: true, description: 'Reference solution code' })
-  @IsNotEmpty()
-  @IsString()
+  @ApiProperty({ required: true })
+  @IsNotEmpty() @IsString()
   code: string;
 }
 
 export class createCustomQuestionDTO {
   organizationId: Types.ObjectId;
   createdBy: string;
+  solutionTemplates?: any[];
+  status?: QUESTION_STATUS;
 
   @ApiProperty({ required: true })
   @IsNotEmpty()
@@ -196,11 +211,9 @@ export class createCustomQuestionDTO {
   @Type(() => QuestionConstraintsDTO)
   constraints?: QuestionConstraintsDTO;
 
-  // always starts as 'draft' — set by backend, never by frontend
-  status?: QUESTION_STATUS;
-
-  // solution templates are auto generated by backend — never sent by frontend
-  solutionTemplates?: any[];
+  @ApiProperty({ required: false, type: OutputConstraintsDTO })
+  @IsOptional() @ValidateNested() @Type(() => OutputConstraintsDTO)
+  outputConstraints?: OutputConstraintsDTO;
 }
 
 export class validateReferenceSolutionDTO {
@@ -216,7 +229,6 @@ export class validateReferenceSolutionDTO {
   referenceSolution: ReferenceSolutionDTO;
 }
 
-// separate from creation — admin explicitly publishes after verification
 export class publishQuestionDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
