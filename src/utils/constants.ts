@@ -117,6 +117,18 @@ export enum TEST_LANGUAGES {
 export interface QUESTION_INPUT_TYPE {
   type: string;
   paramName: string;
+  constraints?: any;
+}
+
+export interface QUESTION_CONSTRAINTS {
+  timeLimit?: number; // in seconds
+  memoryLimit?: number; // in MB
+}
+
+export interface OUTPUT_CONSTRAINTS {
+  isOrdered?: boolean;
+  tolerance?: number;
+  caseSensitive?: boolean;
 }
 
 export enum QUESTION_OUTPUT_TYPE {

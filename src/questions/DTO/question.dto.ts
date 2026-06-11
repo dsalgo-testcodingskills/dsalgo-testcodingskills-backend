@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsNotEmpty } from 'class-validator';
 import { Types } from 'mongoose';
-import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE } from 'src/utils/constants';
+import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE, QUESTION_CONSTRAINTS, OUTPUT_CONSTRAINTS } from 'src/utils/constants';
 import { DIFFICULTY_LEVEL, testCase } from '../question.types';
 
 export interface CustomQuestionTestCase {
@@ -46,6 +46,12 @@ export class createQuestionDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   outputType: QUESTION_OUTPUT_TYPE;
+
+  @ApiProperty({ required: false })
+  constraints?: QUESTION_CONSTRAINTS;
+
+  @ApiProperty({ required: false })
+  outputConstraints?: OUTPUT_CONSTRAINTS;
 }
 
 export class getQuestionsDTO {
@@ -109,4 +115,10 @@ export class createCustomQuestionDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   outputType: QUESTION_OUTPUT_TYPE;
+
+  @ApiProperty({ required: false })
+  constraints?: QUESTION_CONSTRAINTS;
+
+  @ApiProperty({ required: false })
+  outputConstraints?: OUTPUT_CONSTRAINTS;
 }
