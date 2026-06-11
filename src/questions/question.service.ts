@@ -58,6 +58,18 @@ export class QuestionsService {
     return this.questionModel.create(body);
   }
 
+  saveDraft(body: any) {
+    return this.questionModel.create({ ...body, isDraft: true });
+  }
+
+  async finalizeDraft(id: string) {
+    return this.questionModel.findByIdAndUpdate(
+      id,
+      { $set: { isDraft: false } },
+      { new: true },
+    );
+  }
+
   async findAndUpdateCustomQuestion(id, payload) {
     try {
       const result = await this.questionModel
@@ -84,10 +96,10 @@ export class QuestionsService {
       const skip = page * limit - limit;
       const sort: any =
         sorting === 'asc' ? { createdAt: 1 } : { createdAt: -1 };
-      let filterObj = {};
+      let filterObj: any = { isDraft: { $ne: true } };
 
       if (request) {
-        filterObj = { $or: [{ organizationId: request }, { public: true }] };
+        filterObj = { $and: [{ $or: [{ organizationId: request }, { public: true }] }, { isDraft: { $ne: true } }] };
       }
 
       const [data, count] = await Promise.all([
@@ -118,6 +130,6 @@ export class QuestionsService {
   }
 
   customQuestionCount(filter: any) {
-    return this.questionModel.find(filter).count();
+    return this.questionModel.find({ ...filter, isDraft: { $ne: true } }).count();
   }
 }

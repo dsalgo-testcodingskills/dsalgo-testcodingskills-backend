@@ -38,6 +38,12 @@ export class Question {
   @Prop()
   public: boolean;
 
+  @Prop({ default: false })
+  isDraft: boolean;
+
+  @Prop({ type: [String] })
+  topics: string[];
+
   @Prop()
   solutionTemplates: sampleCodeInterface[];
 

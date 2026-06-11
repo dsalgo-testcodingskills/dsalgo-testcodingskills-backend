@@ -2,6 +2,13 @@ import { config } from 'dotenv';
 import { BadRequestException } from '@nestjs/common';
 import * as sgMail from '@sendgrid/mail';
 import * as nodeMailer from 'nodemailer';
+import {
+  CPP_SOLUTION_TEMPLATE,
+  JAVA_SOLUTION_TEMPLATE,
+  PYTHON_SOLUTION_TEMPLATE,
+  JAVASCRIPT_SOLUTION_TEMPLATE,
+  GO_SOLUTION_TEMPLATE,
+} from '../utils/constants';
 
 const smtpTransport = require('nodemailer-smtp-transport');
 config();
@@ -552,4 +559,77 @@ export function getDatatypeOfParamters(language: string, paramType: string) {
         : paramType;
   }
   return dataType;
+}
+
+export function generateSolutionTemplates(inputType: any[], outputType: string) {
+  let cpp_solution_params = '';
+  let java_solution_params = '';
+  let python_javascript_solution_params = '';
+  let go_solution_params = '';
+
+  for (const param of inputType) {
+    cpp_solution_params =
+      cpp_solution_params +
+      getDatatypeOfParamters('cpp', param.type) +
+      ' ' +
+      param.paramName +
+      ',';
+    java_solution_params =
+      java_solution_params +
+      getDatatypeOfParamters('java', param.type) +
+      ' ' +
+      param.paramName +
+      ',';
+    python_javascript_solution_params =
+      python_javascript_solution_params + param.paramName + ',';
+    go_solution_params =
+      param.paramName +
+      ' ' +
+      getDatatypeOfParamters('go', param.type) +
+      ',';
+  }
+
+  cpp_solution_params = cpp_solution_params.replace(/,$/g, '');
+  java_solution_params = java_solution_params.replace(/,$/g, '');
+  python_javascript_solution_params =
+    python_javascript_solution_params.replace(/,$/g, '');
+  go_solution_params = go_solution_params.replace(/.$/g, '');
+
+  return [
+    {
+      language: 'cpp',
+      code: CPP_SOLUTION_TEMPLATE.replace(
+        'return_type',
+        getDatatypeOfParamters('cpp', outputType),
+      ).replace('parameters', cpp_solution_params),
+    },
+    {
+      language: 'java',
+      code: JAVA_SOLUTION_TEMPLATE.replace(
+        'return_type',
+        getDatatypeOfParamters('java', outputType),
+      ).replace('parameters', java_solution_params),
+    },
+    {
+      language: 'python',
+      code: PYTHON_SOLUTION_TEMPLATE.replace(
+        'parameters',
+        python_javascript_solution_params,
+      ),
+    },
+    {
+      language: 'javascript',
+      code: JAVASCRIPT_SOLUTION_TEMPLATE.replace(
+        'parameters',
+        python_javascript_solution_params,
+      ),
+    },
+    {
+      language: 'go',
+      code: GO_SOLUTION_TEMPLATE.replace(
+        'return_type',
+        getDatatypeOfParamters('go', outputType),
+      ).replace('parameters', go_solution_params),
+    },
+  ];
 }
