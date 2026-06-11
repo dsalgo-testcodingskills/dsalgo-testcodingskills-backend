@@ -379,6 +379,148 @@ export class QuestionsController {
     }
   }
 
+  @Post('saveDraft')
+  @UsePipes(ValidationPipe)
+  async saveDraft(
+    @Req() request,
+    @Body() body: createCustomQuestionDTO,
+  ) {
+    try {
+      let orgId = request.payload['custom:orgId'];
+      const org = await this.authenticationService.getOrganisation({
+        _id: request.payload['custom:orgId'],
+      });
+      if (org && org.subscriptionPlan === 'free') {
+        return {
+          message: 'no custom question for free plan',
+          statusCode: 402,
+        };
+      }
+
+      // Check for each test case whether valid or not
+      let isValid;
+      [isValid, body] = checkTestCases(body);
+      if (!isValid) return body;
+
+      // Generate solution templates (same logic as createCustomQuestion)
+      let cpp_solution_params = '';
+      let java_solution_params = '';
+      let python_javascript_solution_params = '';
+      let go_solution_params = '';
+      for (const param of body.inputType) {
+        cpp_solution_params =
+          cpp_solution_params +
+          getDatatypeOfParamters('cpp', param.type) +
+          ' ' +
+          param.paramName +
+          ',';
+        java_solution_params =
+          java_solution_params +
+          getDatatypeOfParamters('java', param.type) +
+          ' ' +
+          param.paramName +
+          ',';
+        python_javascript_solution_params =
+          python_javascript_solution_params + param.paramName + ',';
+        go_solution_params =
+          param.paramName +
+          ' ' +
+          getDatatypeOfParamters('go', param.type) +
+          ',';
+      }
+      cpp_solution_params = cpp_solution_params.replace(/,$/g, '');
+      java_solution_params = java_solution_params.replace(/,$/g, '');
+      python_javascript_solution_params =
+        python_javascript_solution_params.replace(/,$/g, '');
+      go_solution_params = go_solution_params.replace(/.$/g, '');
+
+      body['solutionTemplates'] = [
+        {
+          language: 'cpp',
+          code: CPP_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('cpp', body.outputType),
+          ).replace('parameters', cpp_solution_params),
+        },
+        {
+          language: 'java',
+          code: JAVA_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('java', body.outputType),
+          ).replace('parameters', java_solution_params),
+        },
+        {
+          language: 'python',
+          code: PYTHON_SOLUTION_TEMPLATE.replace(
+            'parameters',
+            python_javascript_solution_params,
+          ),
+        },
+        {
+          language: 'javascript',
+          code: JAVASCRIPT_SOLUTION_TEMPLATE.replace(
+            'parameters',
+            python_javascript_solution_params,
+          ),
+        },
+        {
+          language: 'go',
+          code: GO_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('go', body.outputType),
+          ).replace('parameters', go_solution_params),
+        },
+      ];
+
+      body['organizationId'] = new Types.ObjectId(
+        request.payload['custom:orgId'],
+      );
+      body['createdBy'] = request.payload.nickname;
+
+      const draft = await this.questionsService.saveDraft(body);
+
+      return {
+        message: 'Draft saved successfully',
+        statusCode: 200,
+        data: { _id: draft._id, solutionTemplates: draft.solutionTemplates },
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Patch('finalizeDraft/:id')
+  async finalizeDraft(@Param('id') id: string, @Req() request) {
+    try {
+      const question = await this.questionsService.findById(id);
+      if (!question) {
+        throw new BadRequestException('Draft question not found');
+      }
+      if (!question.isDraft) {
+        return {
+          message: 'Question is already finalized',
+          statusCode: 200,
+          data: question,
+        };
+      }
+
+      const result = await this.questionsService.finalizeDraft(id);
+
+      await this.authenticationService.updateOrganisation(
+        { _id: request.payload['custom:orgId'] },
+        { $inc: { availableTests: -1 } },
+      );
+
+      return {
+        message: 'Question created successfully',
+        statusCode: 200,
+        data: result,
+      };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
   @Patch('/updateCustomQuestion/:id')
   async update(@Param('id') id: string, @Body() body: any, @Req() request) {
     try {
@@ -397,6 +539,76 @@ export class QuestionsController {
       [isValid, body] = checkTestCases(body);
 
       if (!isValid) return body;
+
+      // Generate solution templates
+      let cpp_solution_params = '';
+      let java_solution_params = '';
+      let python_javascript_solution_params = '';
+      let go_solution_params = '';
+      for (const param of body.inputType) {
+        cpp_solution_params =
+          cpp_solution_params +
+          getDatatypeOfParamters('cpp', param.type) +
+          ' ' +
+          param.paramName +
+          ',';
+        java_solution_params =
+          java_solution_params +
+          getDatatypeOfParamters('java', param.type) +
+          ' ' +
+          param.paramName +
+          ',';
+        python_javascript_solution_params =
+          python_javascript_solution_params + param.paramName + ',';
+        go_solution_params =
+          param.paramName +
+          ' ' +
+          getDatatypeOfParamters('go', param.type) +
+          ',';
+      }
+      cpp_solution_params = cpp_solution_params.replace(/,$/g, '');
+      java_solution_params = java_solution_params.replace(/,$/g, '');
+      python_javascript_solution_params =
+        python_javascript_solution_params.replace(/,$/g, '');
+      go_solution_params = go_solution_params.replace(/.$/g, '');
+
+      body['solutionTemplates'] = [
+        {
+          language: 'cpp',
+          code: CPP_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('cpp', body.outputType),
+          ).replace('parameters', cpp_solution_params),
+        },
+        {
+          language: 'java',
+          code: JAVA_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('java', body.outputType),
+          ).replace('parameters', java_solution_params),
+        },
+        {
+          language: 'python',
+          code: PYTHON_SOLUTION_TEMPLATE.replace(
+            'parameters',
+            python_javascript_solution_params,
+          ),
+        },
+        {
+          language: 'javascript',
+          code: JAVASCRIPT_SOLUTION_TEMPLATE.replace(
+            'parameters',
+            python_javascript_solution_params,
+          ),
+        },
+        {
+          language: 'go',
+          code: GO_SOLUTION_TEMPLATE.replace(
+            'return_type',
+            getDatatypeOfParamters('go', body.outputType),
+          ).replace('parameters', go_solution_params),
+        },
+      ];
 
       const result = await this.questionsService.findAndUpdateCustomQuestion(
         id,

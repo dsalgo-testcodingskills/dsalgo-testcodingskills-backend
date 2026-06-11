@@ -41,6 +41,10 @@ export class Question {
   @Prop()
   public: boolean;
 
+  @Prop({ default: false })
+  isDraft: boolean;
+
+
   @Prop()
   solutionTemplates: sampleCodeInterface[];
 
