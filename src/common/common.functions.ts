@@ -8,6 +8,11 @@ import {
   PYTHON_SOLUTION_TEMPLATE,
   JAVASCRIPT_SOLUTION_TEMPLATE,
   GO_SOLUTION_TEMPLATE,
+  C_SOLUTION_TEMPLATE,
+  CSHARP_SOLUTION_TEMPLATE,
+  RUBY_SOLUTION_TEMPLATE,
+  PHP_SOLUTION_TEMPLATE,
+  RUST_SOLUTION_TEMPLATE,
 } from '../utils/constants';
 
 const smtpTransport = require('nodemailer-smtp-transport');
@@ -508,7 +513,7 @@ export const checkTestCases = (body) => {
 
 export function getDatatypeOfParamters(language: string, paramType: string) {
   let dataType = '';
-  if (language === 'java') {
+  if (language === 'java' || language === 'csharp') {
     dataType =
       paramType === '2d_array_int'
         ? 'int[][]'
@@ -519,10 +524,13 @@ export function getDatatypeOfParamters(language: string, paramType: string) {
         : paramType === 'array_char'
         ? 'char[]'
         : paramType === 'string'
-        ? 'String'
+        ? (language === 'csharp' ? 'string' : 'String')
+        : paramType === 'boolean'
+        ? 'boolean'
         : paramType === 'float'
         ? 'float'
         : paramType;
+    if (language === 'csharp' && dataType === 'boolean') dataType = 'bool';
   } else if (language === 'cpp') {
     dataType =
       paramType === '2d_array_int'
@@ -539,6 +547,42 @@ export function getDatatypeOfParamters(language: string, paramType: string) {
         ? 'string'
         : paramType === 'float'
         ? 'float'
+        : paramType;
+  } else if (language === 'c') {
+    dataType =
+      paramType === '2d_array_int'
+        ? 'int**'
+        : paramType === 'array_int'
+        ? 'int*'
+        : paramType === '2d_array_char'
+        ? 'char**'
+        : paramType === 'array_char'
+        ? 'char*'
+        : paramType === 'boolean'
+        ? 'bool'
+        : paramType === 'string'
+        ? 'char*'
+        : paramType === 'float'
+        ? 'float'
+        : paramType;
+  } else if (language === 'rust') {
+    dataType =
+      paramType === '2d_array_int'
+        ? 'Vec<Vec<i32>>'
+        : paramType === 'array_int'
+        ? 'Vec<i32>'
+        : paramType === '2d_array_char'
+        ? 'Vec<Vec<char>>'
+        : paramType === 'array_char'
+        ? 'Vec<char>'
+        : paramType === 'boolean'
+        ? 'bool'
+        : paramType === 'string'
+        ? 'String'
+        : paramType === 'float'
+        ? 'f32'
+        : paramType === 'int'
+        ? 'i32'
         : paramType;
   } else if (language === 'go') {
     dataType =
@@ -566,6 +610,9 @@ export function generateSolutionTemplates(inputType: any[], outputType: string) 
   let java_solution_params = '';
   let python_javascript_solution_params = '';
   let go_solution_params = '';
+  let c_solution_params = '';
+  let csharp_solution_params = '';
+  let rust_solution_params = '';
 
   for (const param of inputType) {
     cpp_solution_params =
@@ -587,13 +634,34 @@ export function generateSolutionTemplates(inputType: any[], outputType: string) 
       ' ' +
       getDatatypeOfParamters('go', param.type) +
       ',';
+    c_solution_params =
+      c_solution_params +
+      getDatatypeOfParamters('c', param.type) +
+      ' ' +
+      param.paramName +
+      ',';
+    csharp_solution_params =
+      csharp_solution_params +
+      getDatatypeOfParamters('csharp', param.type) +
+      ' ' +
+      param.paramName +
+      ',';
+    rust_solution_params =
+      rust_solution_params +
+      param.paramName +
+      ': ' +
+      getDatatypeOfParamters('rust', param.type) +
+      ',';
   }
 
   cpp_solution_params = cpp_solution_params.replace(/,$/g, '');
   java_solution_params = java_solution_params.replace(/,$/g, '');
   python_javascript_solution_params =
     python_javascript_solution_params.replace(/,$/g, '');
-  go_solution_params = go_solution_params.replace(/.$/g, '');
+  go_solution_params = go_solution_params.replace(/,$/g, '');
+  c_solution_params = c_solution_params.replace(/,$/g, '');
+  csharp_solution_params = csharp_solution_params.replace(/,$/g, '');
+  rust_solution_params = rust_solution_params.replace(/,$/g, '');
 
   return [
     {
@@ -630,6 +698,41 @@ export function generateSolutionTemplates(inputType: any[], outputType: string) 
         'return_type',
         getDatatypeOfParamters('go', outputType),
       ).replace('parameters', go_solution_params),
+    },
+    {
+      language: 'c',
+      code: C_SOLUTION_TEMPLATE.replace(
+        'return_type',
+        getDatatypeOfParamters('c', outputType),
+      ).replace('parameters', c_solution_params),
+    },
+    {
+      language: 'csharp',
+      code: CSHARP_SOLUTION_TEMPLATE.replace(
+        'return_type',
+        getDatatypeOfParamters('csharp', outputType),
+      ).replace('parameters', csharp_solution_params),
+    },
+    {
+      language: 'ruby',
+      code: RUBY_SOLUTION_TEMPLATE.replace(
+        'parameters',
+        python_javascript_solution_params,
+      ),
+    },
+    {
+      language: 'php',
+      code: PHP_SOLUTION_TEMPLATE.replace(
+        'parameters',
+        '$' + python_javascript_solution_params.replace(/,/g, ', $'),
+      ),
+    },
+    {
+      language: 'rust',
+      code: RUST_SOLUTION_TEMPLATE.replace(
+        'return_type',
+        getDatatypeOfParamters('rust', outputType),
+      ).replace('parameters', rust_solution_params),
     },
   ];
 }
