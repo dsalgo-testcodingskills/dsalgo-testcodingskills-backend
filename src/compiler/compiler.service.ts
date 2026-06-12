@@ -380,7 +380,7 @@ export class CompilerService {
           : '';
        if (!solution_code) throw new Error(`Unsupported language: ${language}`);
        const languageId=JUDGE0_LANGUAGE_IDS[language]
-             if (!languageId) throw new Error(`No Judge0 language ID found for: ${language}`);
+       if (!languageId) throw new Error(`No Judge0 language ID found for: ${language}`);
       const submissions = await Promise.all(
         question.testCases.map(async (_, i) => {
           const invocationCode = await this.getInvocationCode(language, question, i);
@@ -388,7 +388,7 @@ export class CompilerService {
           return { source_code: sourceCode, language_id: languageId };
         }),
       );
-      const timeLimit   = question.constraints?.timeLimit   ?? 2;
+      const timeLimit   = Math.min(question.constraints?.timeLimit ?? 2, 15.0);
       const memoryLimit = question.constraints?.memoryLimit ?? 256;
       const tokens = await this.submitBatchToJudge0(submissions, timeLimit, memoryLimit);
       console.log("🚀 ~ CompilerService ~ compileAndRun ~ tokens:", tokens)
@@ -427,7 +427,8 @@ export class CompilerService {
     });
 
     if (!response.ok) {
-      throw new Error(`Judge0 batch submission failed: ${response.statusText}`);
+      const errorBody = await response.json().catch(() => null);
+      throw new Error(`Judge0 batch submission failed: ${response.statusText} - ${JSON.stringify(errorBody)}`);
     }
 
     // returns array of { token } objects, one per submission

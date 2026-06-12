@@ -99,6 +99,9 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: "/questions/custom-question-find", method: "post" },
     { url: "/questions/:id", method: "get" },
     { url: "/questions/previewCustomQuestion", method: "post" },
+    { url: "/questions/finalizeDraft/:id", method: "post" },
+    { url: "/questions/saveDraft", method: "post" },
+
   ],
   payment: [
     { url: "/payment/createSubscription", method: "post" },
