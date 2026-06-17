@@ -76,10 +76,14 @@ export class QuestionsService {
     return this.questionModel.create({ ...body, isDraft: true });
   }
 
-  async finalizeDraft(id: string) {
+  async finalizeDraft(id: string, adminSolution?: any[]) {
+    const update: any = { isDraft: false };
+    if (adminSolution && adminSolution.length > 0) {
+      update.adminSolution = adminSolution;
+    }
     return this.questionModel.findByIdAndUpdate(
       id,
-      { $set: { isDraft: false } },
+      { $set: update },
       { new: true },
     );
   }
@@ -110,10 +114,10 @@ export class QuestionsService {
       const skip = page * limit - limit;
       const sort: any =
         sorting === 'asc' ? { createdAt: 1 } : { createdAt: -1 };
-      let filterObj: any = { isDraft: { $ne: true } };
+      let filterObj: any = {};
 
       if (request) {
-        filterObj = { $and: [{ $or: [{ organizationId: request }, { public: true }] }, { isDraft: { $ne: true } }] };
+        filterObj = { $or: [{ organizationId: request }, { public: true }] };
       }
 
       const [data, count] = await Promise.all([

@@ -368,7 +368,24 @@ export class CompilerService {
           : language === 'cpp'
           ? TEST_CODE_FOR_CPP.replace('SOLUTION_METHOD', code)
           : language === 'java'
-          ? TEST_CODE_FOR_JAVA.replace('SOLUTION_METHOD', code)
+          ? (() => {
+              const lines = code.split('\n');
+              const importLines: string[] = [];
+              const nonImportLines: string[] = [];
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('import ') && trimmed.endsWith(';')) {
+                  importLines.push(trimmed);
+                } else {
+                  nonImportLines.push(line);
+                }
+              }
+              const extraImports = importLines.length > 0 ? importLines.join('\n') : '';
+              const codeWithoutImports = nonImportLines.join('\n').trim();
+              return TEST_CODE_FOR_JAVA
+                .replace('EXTRA_IMPORTS', extraImports)
+                .replace('SOLUTION_METHOD', codeWithoutImports);
+            })()
           : language === 'python'
           ? TEST_CODE_FOR_PYTHON.replace('SOLUTION_METHOD', code)
           : language === 'javascript'

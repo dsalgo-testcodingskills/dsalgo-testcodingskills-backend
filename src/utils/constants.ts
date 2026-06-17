@@ -22,7 +22,9 @@ function main(){
 }
 main()`;
 
-export const TEST_CODE_FOR_JAVA = `import java.util.Arrays;
+export const TEST_CODE_FOR_JAVA = `import java.util.*;
+import java.util.stream.*;
+EXTRA_IMPORTS
 public class Main{
   SOLUTION_METHOD
   public static void main (String args[]){
