@@ -266,8 +266,19 @@ export class SuperAdminService {
           .lean(),
         this.paymentsModel.find(match).countDocuments(),
       ]);
+
+      const modifiedData = data.map((payment) => ({
+        ...payment,
+        status:
+          payment.status === "captured"
+            ? "Successful"
+            : payment.status === "failed"
+            ? "Failed"
+            : payment.status,
+      }));
+
       return {
-        data,
+        data: modifiedData,
         count,
       };
     } catch (error) {
