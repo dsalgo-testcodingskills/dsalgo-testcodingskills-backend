@@ -18,6 +18,9 @@ import {
   GO_SOLUTION_TEMPLATE,
   CSHARP_SOLUTION_TEMPLATE,
   TYPESCRIPT_SOLUTION_TEMPLATE,
+  KOTLIN_SOLUTION_TEMPLATE,
+  RUBY_SOLUTION_TEMPLATE,
+  SWIFT_SOLUTION_TEMPLATE,
 } from './constants';
 
 export interface LanguageConfig {
@@ -27,6 +30,7 @@ export interface LanguageConfig {
   formatArgument: (type: string, value: any) => string;
   formatParameters: (params: { type: string; paramName: string }[], getDataType: (lang: string, type: string) => string) => string;
   getInvocation: (functionCall: string, outputType: string, getDataType: (lang: string, type: string) => string) => string;
+  formatInvocationArgument?: (param: { type: string; paramName: string }, value: string) => string;
 }
 
 const defaultFormatArgument = (type: string, value: any) => {
@@ -269,7 +273,194 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       }
       return `$value = ${call}; echo "<logsOutputSeprator>" . $value;`;
     }
+  },
+  kotlin: {
+    wrapper: TEST_CODE_FOR_KOTLIN,
+    template: KOTLIN_SOLUTION_TEMPLATE,
+
+    dataTypeMap: {
+      '2d_array_int': 'Array<IntArray>',
+      'array_int': 'IntArray',
+
+      '2d_array_char': 'Array<CharArray>',
+      'array_char': 'CharArray',
+
+      'string': 'String',
+      'float': 'Double',
+      'int': 'Int',
+      'boolean': 'Boolean',
+    },
+
+    formatArgument: (type, val) => {
+      if (type === '2d_array_int') {
+        return `arrayOf(${val
+          .map((row: any) => `intArrayOf(${row.join(',')})`)
+          .join(',')})`;
+      }
+
+      if (type === 'array_int') {
+        return `intArrayOf(${val.join(',')})`;
+      }
+
+      if (type === '2d_array_char') {
+        return `arrayOf(${val
+          .map(
+            (row: any) =>
+              `charArrayOf(${row.map((c: string) => `'${c}'`).join(',')})`
+          )
+          .join(',')})`;
+      }
+
+      if (type === 'array_char') {
+        return `charArrayOf(${val.map((c: string) => `'${c}'`).join(',')})`;
+      }
+
+      if (type === 'string') {
+        return JSON.stringify(val);
+      }
+
+      return JSON.stringify(val);
+    },
+
+    formatParameters: (params, getDT) =>
+      params
+        .map(p => `${p.paramName}: ${getDT('kotlin', p.type)}`)
+        .join(', '),
+
+    getInvocation: (call, outType, getDT) => {
+
+      if (outType === 'array_int') {
+        return `
+val arr: ${getDT('kotlin', outType)} = ${call}
+print("<logsOutputSeprator>")
+for(el in arr){
+    print("$el ")
+}
+`;
+      }
+
+      if (outType === 'array_char') {
+        return `
+val arr: ${getDT('kotlin', outType)} = ${call}
+print("<logsOutputSeprator>")
+for(el in arr){
+    print("$el ")
+}
+`;
+      }
+
+      return `
+val value: ${getDT('kotlin', outType)} = ${call}
+print("<logsOutputSeprator>$value")
+`;
+    }
+  },
+  ruby: {
+  wrapper: TEST_CODE_FOR_RUBY,
+  template: RUBY_SOLUTION_TEMPLATE,
+
+  dataTypeMap: {},
+
+  formatArgument: (type, val) => {
+    if (type === 'boolean') {
+      return val ? 'true' : 'false';
+    }
+
+    if (type === 'array_char') {
+      return `[${val.map((c: string) => `'${c}'`).join(',')}]`;
+    }
+
+    return JSON.stringify(val);
+  },
+
+  formatParameters: (params) =>
+    params.map(p => p.paramName).join(', '),
+
+  getInvocation: (call, outType) => {
+
+    if (outType === 'array_int' || outType === 'array_char') {
+      return `
+arr = ${call}
+print "<logsOutputSeprator>"
+arr.each { |el| print "#{el} " }
+`;
+    }
+
+    return `
+value = ${call}
+print "<logsOutputSeprator>#{value}"
+`;
   }
+},
+ swift: {
+      wrapper: TEST_CODE_FOR_SWIFT,
+      template: SWIFT_SOLUTION_TEMPLATE,
+
+      dataTypeMap: {
+        'int': 'Int',
+        'float': 'Double',
+        'boolean': 'Bool',
+        'string': 'String',
+        'array_int': '[Int]',
+        'array_char': '[Character]',
+        '2d_array_int': '[[Int]]',
+        '2d_array_char': '[[Character]]',
+      },
+
+      formatArgument: (type, val) => {
+        if (type === 'array_int') {
+          return `[${val.join(',')}]`;
+        }
+
+        if (type === '2d_array_int') {
+          return `[${val.map((r: any) => `[${r.join(',')}]`).join(',')}]`;
+        }
+
+        if (type === 'array_char') {
+          return `[${val.map((c: string) => `"${c}"`).join(',')}]`;
+        }
+
+        if (type === '2d_array_char') {
+          return `[${val.map((r: any) =>
+            `[${r.map((c: string) => `"${c}"`).join(',')}]`
+          ).join(',')}]`;
+        }
+
+        if (type === 'string') {
+          return `"${val}"`;
+        }
+
+        if (type === 'boolean') {
+          return val ? 'true' : 'false';
+        }
+
+        return String(val);
+      },
+
+      formatParameters: (params, getDT) =>
+        params
+          .map(p => `${p.paramName}: ${getDT('swift', p.type)}`)
+          .join(', '),
+
+      getInvocation: (call, outType) => {
+        if (outType === 'array_int' || outType === 'array_char') {
+                  return `
+        let arr = ${call}
+        print("<logsOutputSeprator>", terminator: "")
+        for el in arr {
+            print(el, terminator: " ")
+        }
+        `;
+                }
+
+                return `
+        let value = ${call}
+        print("<logsOutputSeprator>\\(value)", terminator: "")
+        `;
+              },
+      formatInvocationArgument: (param, value) =>
+    `${param.paramName}: ${value}`,
+    },
 };
 
 export const getLanguageConfig = (language: string): LanguageConfig => {

@@ -128,7 +128,25 @@ export const TYPESCRIPT_SOLUTION_TEMPLATE = `function solution(parameters): retu
   //Dont write any of your code outside this function
 
 }`;
+export const KOTLIN_SOLUTION_TEMPLATE = `fun solution(parameters): return_type {
+    // Write your code only in provided function
+    // Don't write any of your code outside this function
+    // Function will be executed with inputs from test cases on run test cases
 
+}`;
+
+export const RUBY_SOLUTION_TEMPLATE = `def solution(parameters)
+  # Write your code only in provided function
+  # Don't write any of your code outside this function
+  # Function will be executed with inputs from test cases on run test cases
+
+end`;
+export const SWIFT_SOLUTION_TEMPLATE = `func solution(parameters) -> return_type {
+    // Write your code only in the provided function
+    // Don't write any code outside this function
+    // Function will be executed with inputs from test cases
+
+}`;
 export enum QUESTION_TYPE {
   DSA = 'dsa',
   DATABASE = 'database',
@@ -287,6 +305,9 @@ export const LANGUAGE_CATEGORIES = {
     { id: 60, name: 'Go (1.13.5)', internal: 'go' },
     { id: 51, name: 'C# (Mono 6.6.0.161)', internal: 'csharp' },
     { id: 73, name: 'Rust (1.40.0)', internal: 'rust' },
+    { id: 78, name: 'Kotlin (1.3.70)', internal: 'kotlin' },
+    { id: 72, name: 'Ruby (2.7.0)', internal: 'ruby' },
+    { id: 83, name: 'Swift (5.2.3)', internal: 'swift' },
   ],
   [QUESTION_TYPE.DATABASE]: [
     { id: 82, name: 'SQL (SQLite 3.27.2)', internal: 'sql' },

@@ -48,15 +48,20 @@ export class CompilerService {
   //Returns the arguments for a function to be inserted in the template.
   async getFunctionArguments(language, inputType, testCaseInput) {
     const config = getLanguageConfig(language);
-    let functionArguments = '';
+    const args = [];
 
     for (let i = 0; i < inputType.length; i++) {
-      const val = testCaseInput[i]; //{input: [5, 9], output: 14, hidden: false}
-      functionArguments += config.formatArgument(inputType[i].type, val) + ','; // int,
-    }
-    console.log("🚀 ~ CompilerService ~ getFunctionArguments ~ functionArguments:", functionArguments)
+      const val = testCaseInput[i];
+      const formatted = config.formatArgument(inputType[i].type, val);
 
-    return functionArguments.replace(/,(\s*)?$/g, '');
+      args.push(
+        config.formatInvocationArgument
+          ? config.formatInvocationArgument(inputType[i], formatted)
+          : formatted
+      );
+    }
+
+    return args.join(', ');
   }
 
 
@@ -364,6 +369,7 @@ return result;
           ...s,
           cpu_time_limit: timeLimit,            // from question.constraints.timeLimit has to implement in frontend
           memory_limit: memoryLimit * 1024,     // MB -> KB (Judge0 expects KB)
+          compilation_limit: 30,                // Increase compilation limit to 20s for slow compilers like Kotlin
           enable_network: false,
         })),
       }),
@@ -412,6 +418,7 @@ return result;
         }
       const data = await response.json();
       const submissions = data.submissions;
+      console.log("🚀 ~ CompilerService ~ pollBatchResults ~ submissions:", submissions)
       submissions.forEach((s) => {
         s.stdout = this.decodeBase64(s.stdout);
         s.stderr = this.decodeBase64(s.stderr);
