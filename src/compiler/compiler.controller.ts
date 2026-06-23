@@ -37,11 +37,34 @@ export class CompilerController {
 
   @Post('compileCode')
   async compile(@Req() request, @Body() body: CompileCodeDTO) {
-    try{
-        const question = await this.compilerService.getQuestion(body.questionId);
-        const allOutputs = await this.compilerService.compileAndRun(body.language,body.code,question);
+    try {
+      let questionData: any = null;
+      
+      if (body.testCases && body.testCases.length > 0) {
+        questionData = {
+          testCases: body.testCases,
+          inputType: body.inputType || [],
+          outputType: body.outputType,
+          constraints: body.constraints,
+          outputConstraints: body.outputConstraints,
+          questionType: body.questionType,
+          _id: body.questionId,
+        };
+      } else {
+        questionData = await this.compilerService.getQuestion(body.questionId);
+      }
 
-        return allOutputs;
+      if (!questionData) {
+        throw new Error('Question data not found. Please provide testId and questionId or full metadata.');
+      }
+
+      const allOutputs = await this.compilerService.compileAndRun(
+        body.language,
+        body.code,
+        questionData,
+      );
+
+      return allOutputs;
     } catch (error) {
       throw new HttpException(
         {

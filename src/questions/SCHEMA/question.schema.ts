@@ -1,12 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import * as mongoose from 'mongoose';
-import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE, QUESTION_CONSTRAINTS, OUTPUT_CONSTRAINTS } from 'src/utils/constants';
+import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE, QUESTION_CONSTRAINTS, OUTPUT_CONSTRAINTS, QUESTION_TYPE } from 'src/utils/constants';
 import { DIFFICULTY_LEVEL, testCase} from '../question.types';
 
 export type QuestionDocument = Question & mongoose.Document;
 
 export interface sampleCodeInterface {
-  langauge: string;
+  language: string;
+  versionName?: string;
   code: string;
 }
 
@@ -14,6 +15,8 @@ export interface sampleCodeInterface {
   timestamps: true,
 })
 export class Question {
+  @Prop({ type: String, enum: Object.values(QUESTION_TYPE), default: QUESTION_TYPE.DSA })
+  questionType: QUESTION_TYPE;
   @Prop()
   level: DIFFICULTY_LEVEL;
 

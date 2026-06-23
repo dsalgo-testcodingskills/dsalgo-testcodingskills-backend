@@ -3,6 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import * as sgMail from '@sendgrid/mail';
 import * as nodeMailer from 'nodemailer';
 import { UserRoleEnum } from './enum';
+export { getLanguageDataType as getDatatypeOfParamters } from '../utils/languageRegistry';
 
 const smtpTransport = require('nodemailer-smtp-transport');
 config();
@@ -466,8 +467,38 @@ export const checkTestCases = (body) => {
     //Validate the test cases of the question
     let isValid = true;
     for (let i = 0; i < body.testCases.length; i++) {
-      let inputValues = JSON.parse(body.testCases[i].input);
-      let outputValue = JSON.parse(body.testCases[i].output);
+      let inputValues = body.testCases[i].input;
+      if (typeof inputValues === 'string') {
+        try {
+          inputValues = JSON.parse(inputValues);
+        } catch (e) {
+          inputValues = [inputValues];
+        }
+      }
+
+      if (!Array.isArray(inputValues)) {
+        inputValues = [inputValues];
+      }
+
+      inputValues = inputValues.map((val) => {
+        if (typeof val === 'string' && val.trim() !== '') {
+          try {
+            return JSON.parse(val);
+          } catch (e) {
+            return val;
+          }
+        }
+        return val;
+      });
+
+      let outputValue = body.testCases[i].output;
+      if (typeof outputValue === 'string' && outputValue.trim() !== '') {
+        try {
+          outputValue = JSON.parse(outputValue);
+        } catch (e) {
+          // keep as raw string if not valid JSON
+        }
+      }
 
       //Validate each of the input values is of the data type specified.
       for (let j = 0; j < inputValues.length; j++) {
@@ -500,96 +531,6 @@ export const checkTestCases = (body) => {
   }
 };
 
-export function getDatatypeOfParamters(language: string, paramType: string) {
-  let dataType = '';
-  if (language === 'java') {
-    dataType =
-      paramType === '2d_array_int'
-        ? 'int[][]'
-        : paramType === 'array_int'
-        ? 'int[]'
-        : paramType === '2d_array_char'
-        ? 'char[][]'
-        : paramType === 'array_char'
-        ? 'char[]'
-        : paramType === 'string'
-        ? 'String'
-        : paramType === 'float'
-        ? 'float'
-        : paramType;
-  } else if (language === 'cpp') {
-    dataType =
-      paramType === '2d_array_int'
-        ? 'vector<vector<int>>'
-        : paramType === 'array_int'
-        ? 'vector<int>'
-        : paramType === '2d_array_char'
-        ? 'vector<vector<char>>'
-        : paramType === 'array_char'
-        ? 'vector<char>'
-        : paramType === 'boolean'
-        ? 'bool'
-        : paramType === 'string'
-        ? 'string'
-        : paramType === 'float'
-        ? 'float'
-        : paramType;
-  } else if (language === 'go') {
-    dataType =
-      paramType === '2d_array_int'
-        ? '[][]int'
-        : paramType === 'array_int'
-        ? '[]int'
-        : paramType === '2d_array_char'
-        ? '[][]rune'
-        : paramType === 'array_char'
-        ? '[]rune'
-        : paramType === 'boolean'
-        ? 'bool'
-        : paramType === 'string'
-        ? 'string'
-        : paramType === 'float'
-        ? 'float64'
-        : paramType;
-  } else if (language === 'csharp') {
-    dataType =
-      paramType === '2d_array_int'
-        ? 'int[][]'
-        : paramType === 'array_int'
-        ? 'int[]'
-        : paramType === '2d_array_char'
-        ? 'char[][]'
-        : paramType === 'array_char'
-        ? 'char[]'
-        : paramType === 'boolean'
-        ? 'bool'
-        : paramType === 'string'
-        ? 'string'
-        : paramType === 'float'
-        ? 'float'
-        : paramType;
-  } else if (language === 'typescript') {
-    dataType =
-      paramType === '2d_array_int'
-        ? 'number[][]'
-        : paramType === 'array_int'
-        ? 'number[]'
-        : paramType === '2d_array_char'
-        ? 'string[][]'
-        : paramType === 'array_char'
-        ? 'string[]'
-        : paramType === 'boolean'
-        ? 'boolean'
-        : paramType === 'string'
-        ? 'string'
-        : paramType === 'float'
-        ? 'number'
-        : paramType === 'int'
-        ? 'number'
-        : paramType;
-  }
-  return dataType;
-}
 
 export function normalizeCompanyName(name: string): string {
   return name

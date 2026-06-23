@@ -21,4 +21,17 @@ export class CompileCodeDTO {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   sampleQuestion: boolean;
+
+  @ApiProperty({ required: false })
+  testCases?: any[];
+  @ApiProperty({ required: false })
+  inputType?: any[];
+  @ApiProperty({ required: false })
+  outputType?: string;
+  @ApiProperty({ required: false })
+  constraints?: any;
+  @ApiProperty({ required: false })
+  outputConstraints?: any;
+  @ApiProperty({ required: false })
+  questionType?: string;
 }

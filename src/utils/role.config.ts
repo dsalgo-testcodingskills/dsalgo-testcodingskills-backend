@@ -92,17 +92,17 @@ export const roleApiConfig: roleApiConfigInterF = {
     { url: "/test/verifyEmail", method: "post" },
     { url: "/test/logOut", method: "post" },
   ],
-  question: [
+    question: [
+    { url: "/questions", method: "get" },
     { url: "/questions/getQuestion", method: "post" },
     { url: "/questions/createCustomQuestion", method: "post" },
     { url: "/questions/updateCustomQuestion/:id", method: "patch" },
     { url: "/questions/custom-question-find", method: "post" },
     { url: "/questions/:id", method: "get" },
     { url: "/questions/previewCustomQuestion", method: "post" },
-    { url: "/questions/finalizeDraft/:id", method: "post" },
+    { url: "/questions/finalizeDraft/:id", method: "patch" },
     { url: "/questions/saveDraft", method: "post" },
-
-  ],
+    ],
   payment: [
     { url: "/payment/createSubscription", method: "post" },
     { url: "/payment/subscription/status", method: "post" },

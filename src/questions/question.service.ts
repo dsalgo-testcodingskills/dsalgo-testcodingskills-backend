@@ -1,9 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types as mongooseTypes, ClientSession } from 'mongoose';
-import { createQuestionDTO, getQuestionsDTO } from './DTO/question.dto';
+import { createQuestionDTO, getQuestionsDTO, createCustomQuestionDTO } from './DTO/question.dto';
 import { QuestionDocument } from './SCHEMA/question.schema';
 import { SubscriptionDocument } from 'src/payment/SCHEMA/subscription.schema';
+import {
+  QUESTION_TYPE,
+  LANGUAGE_CATEGORIES,
+} from 'src/utils/constants';
+import { getLanguageConfig, getLanguageDataType } from 'src/utils/languageRegistry';
+
+
 
 @Injectable()
 export class QuestionsService {
@@ -12,11 +19,46 @@ export class QuestionsService {
     private readonly questionModel: Model<QuestionDocument>,
     @InjectModel('subscription')
     private readonly subscriptionModel: Model<SubscriptionDocument>,
-  ) {}
+  ) { }
 
   dbSession(): Promise<ClientSession> {
     return this.questionModel.db.startSession();
   }
+
+  generateSolutionTemplates(body: createCustomQuestionDTO) {
+    const questionType = body.questionType || QUESTION_TYPE.DSA;
+    const templates = [];
+    const languages = LANGUAGE_CATEGORIES[questionType] || [];
+
+    for (const langConfig of languages) {
+      const lang = langConfig.internal;
+      const config = getLanguageConfig(lang);
+
+      if (questionType === QUESTION_TYPE.DSA) {
+        const paramsString = config.formatParameters(body.inputType, getLanguageDataType);
+        const returnType = getLanguageDataType(lang, body.outputType);
+
+        const code = config.template
+          .replace('return_type', returnType)
+          .replace('parameters', paramsString);
+        console.log("🚀 ~ QuestionsService ~ generateSolutionTemplates ~ code:", code)
+
+        templates.push({
+          language: lang,
+          versionName: langConfig.name,
+          code
+        });
+      } else if (questionType === QUESTION_TYPE.DATABASE) {
+        templates.push({
+          language: lang,
+          versionName: langConfig.name,
+          code: '-- Write your SQL query here\nSELECT * FROM table_name;',
+        });
+      }
+    }
+    return templates;
+  }
+
 
   addQuestion(
     reqBody: createQuestionDTO & { questionTemplate: mongooseTypes.ObjectId },
@@ -110,11 +152,11 @@ export class QuestionsService {
       const skip = page * limit - limit;
       const sort: any =
         sorting === 'asc' ? { createdAt: 1 } : { createdAt: -1 };
-      let filterObj: any = { isDraft: { $ne: true } };
+      // let filterObj: any = { isDraft: { $ne: true } };
 
-      if (request) {
-        filterObj = { $and: [{ $or: [{ organizationId: request }, { public: true }] }, { isDraft: { $ne: true } }] };
-      }
+      // if (request) {
+      let filterObj = { $and: [{ $or: [{ organizationId: request }, { public: true }] }] };
+      // }
 
       const [data, count] = await Promise.all([
         this.questionModel

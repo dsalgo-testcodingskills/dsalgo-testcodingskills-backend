@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { Types } from 'mongoose';
-import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE, QUESTION_CONSTRAINTS, OUTPUT_CONSTRAINTS } from 'src/utils/constants';
+import { QUESTION_INPUT_TYPE, QUESTION_OUTPUT_TYPE, QUESTION_CONSTRAINTS, OUTPUT_CONSTRAINTS, QUESTION_TYPE } from 'src/utils/constants';
 import { DIFFICULTY_LEVEL, testCase } from '../question.types';
 
 export interface CustomQuestionTestCase {
@@ -14,6 +14,11 @@ export class createQuestionDTO {
   organizationId: Types.ObjectId; // will be retrieved from token
 
   createdBy: string; //will be retrieved from token
+
+  @ApiProperty({ required: true, enum: QUESTION_TYPE })
+  @IsEnum(QUESTION_TYPE)
+  @IsNotEmpty()
+  questionType: QUESTION_TYPE;
 
   @ApiProperty({ required: true })
   @IsNotEmpty()
@@ -78,6 +83,11 @@ export class createCustomQuestionDTO {
   organizationId: Types.ObjectId; // will be retrieved from token
 
   createdBy: string; //will be retrieved from token
+
+  @ApiProperty({ required: true, enum: QUESTION_TYPE })
+  @IsEnum(QUESTION_TYPE)
+  @IsNotEmpty()
+  questionType: QUESTION_TYPE;
 
   @ApiProperty({ required: true })
   @IsNotEmpty()

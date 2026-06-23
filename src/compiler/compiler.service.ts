@@ -14,13 +14,20 @@ import {
   TEST_CODE_FOR_PYTHON,
   TEST_CODE_FOR_CSHARP,
   TEST_CODE_FOR_TYPESCRIPT,
+  TEST_CODE_FOR_RUST,
+  TEST_CODE_FOR_SWIFT,
+  TEST_CODE_FOR_PHP,
+  TEST_CODE_FOR_RUBY,
+  TEST_CODE_FOR_KOTLIN,
   TEST_LANGUAGES,
   JUDGE0_LANGUAGE_IDS,
   MAX_POLL_ATTEMPTS,
   POLL_INTERVAL_MS,
   JUDGE0_IN_PROGRESS_STATUSES,
+  QUESTION_TYPE,
 } from '../utils/constants';
 import { getDatatypeOfParamters } from '../common/common.functions';
+import { getLanguageConfig } from '../utils/languageRegistry';
 
 @Injectable()
 export class CompilerService {
@@ -28,7 +35,7 @@ export class CompilerService {
     @InjectModel('questions')
     private readonly questionModel: Model<QuestionDocument>,
     private readonly questionsService: QuestionsService,
-  ) {}
+  ) { }
 
   getQuestions() {
     return this.questionsService.getQuestions();
@@ -40,235 +47,144 @@ export class CompilerService {
 
   //Returns the arguments for a function to be inserted in the template.
   async getFunctionArguments(language, inputType, testCaseInput) {
+    const config = getLanguageConfig(language);
     let functionArguments = '';
+
     for (let i = 0; i < inputType.length; i++) {
-      if (language === 'cpp') {
-        functionArguments +=
-          inputType[i].type === '2d_array_int'
-            ? `vector<vector<int>>{${testCaseInput[0]
-                .map((subArr) => `{${subArr.join(',')}}`)
-                .join(',')}}`
-            : inputType[i].type === '2d_array_char'
-            ? `vector<vector<char>>{${testCaseInput[0]
-                .map(
-                  (subArr) =>
-                    `{${JSON.stringify(subArr).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`,
-                )
-                .join(',')}}`
-            : inputType[i].type === 'array_int'
-            ? `vector<int>{${testCaseInput[i].join(',')}}`
-            : inputType[i].type === 'array_char'
-            ? `vector<char>{${JSON.stringify(testCaseInput[i])
-                .replace(/^\[|\]$/g, '')
-                .replace(/"/g, "'")}}`
-            : `${JSON.stringify(testCaseInput[i])},`;
-      } else if (language === 'java') {
-        functionArguments +=
-          inputType[i].type === '2d_array_int'
-            ? `new int[][] {${testCaseInput[i]
-                .map((arr) => `{${arr.join(',')}}`)
-                .join(',')}},`
-            : inputType[i].type === '2d_array_char'
-            ? `new char[][] {${testCaseInput[i]
-                .map(
-                  (arr) =>
-                    `new char[] {${JSON.stringify(arr)
-                      .replace(/^\[|\]$/g, '')
-                      .replace(/"/g, "'")}}`,
-                )
-                .join(',')}},`
-            : inputType[i].type === 'array_int'
-            ? `new int[] {${testCaseInput[i].join(',')}},`
-            : inputType[i].type === 'array_char'
-            ? `new char[] {${JSON.stringify(testCaseInput[i])
-                .replace(/^\[|\]$/g, '')
-                .replace(/"/g, "'")}},`
-            : `${JSON.stringify(testCaseInput[i])},`;
-      } else if (language === 'python') {
-        functionArguments +=
-          inputType[i].type === 'boolean'
-            ? JSON.stringify(testCaseInput[i]).charAt(0).toUpperCase() +
-              JSON.stringify(testCaseInput[i]).slice(1)
-            : inputType[i].type.includes('2d_array')
-            ? JSON.stringify(testCaseInput[i]).replace(/\],\[/g, '],\n[') + ','
-            : JSON.stringify(testCaseInput[i]) + ',';
-      } else if (language === 'javascript') {
-        functionArguments += JSON.stringify(testCaseInput[i]) + ',';
-      } else if (language === 'go') {
-        functionArguments +=
-          inputType[i].type === '2d_array_int'
-            ? `[][]int{${testCaseInput[i]
-                .map((row) => `{${row.join(',')}}`)
-                .join(',')}}, `
-            : inputType[i].type === '2d_array_char'
-            ? `[][]rune{${testCaseInput[i]
-                .map(
-                  (row) =>
-                    `[]rune{${JSON.stringify(row)
-                      .replace(/^\[|\]$/g, '')
-                      .replace(/"/g, "'")}}`,
-                )
-                .join(',')}}, `
-            : inputType[i].type === 'array_int'
-            ? `[]int{${testCaseInput[i].join(',')}}, `
-            : inputType[i].type === 'array_char'
-            ? `[]rune{${JSON.stringify(testCaseInput[i])
-                .replace(/^\[|\]$/g, '')
-                .replace(/"/g, "'")}}, `
-            : `${JSON.stringify(testCaseInput[i])}, `;
-      } else if (language === 'csharp') {
-        functionArguments +=
-          inputType[i].type === '2d_array_int'
-            ? `new int[][] {${testCaseInput[i]
-                .map((arr) => `new int[] {${arr.join(',')}}`)
-                .join(',')}},`
-            : inputType[i].type === '2d_array_char'
-            ? `new char[][] {${testCaseInput[i]
-                .map(
-                  (arr) =>
-                    `new char[] {${JSON.stringify(arr)
-                      .replace(/^\[|\]$/g, '')
-                      .replace(/"/g, "'")}}`,
-                )
-                .join(',')}},`
-            : inputType[i].type === 'array_int'
-            ? `new int[] {${testCaseInput[i].join(',')}},`
-            : inputType[i].type === 'array_char'
-            ? `new char[] {${JSON.stringify(testCaseInput[i])
-                .replace(/^\[|\]$/g, '')
-                .replace(/"/g, "'")}},`
-            : `${JSON.stringify(testCaseInput[i])},`;
-      } else if (language === 'typescript') {
-        functionArguments += JSON.stringify(testCaseInput[i]) + ',';
-      }
+      const val = testCaseInput[i]; //{input: [5, 9], output: 14, hidden: false}
+      functionArguments += config.formatArgument(inputType[i].type, val) + ','; // int,
     }
-    return functionArguments.replace(/,$/g, '');
+    console.log("🚀 ~ CompilerService ~ getFunctionArguments ~ functionArguments:", functionArguments)
+
+    return functionArguments.replace(/,(\s*)?$/g, '');
   }
 
+
   async getInvocationCode(language, question, testCaseIndex) {
+    if (question.questionType === QUESTION_TYPE.DATABASE) {
+      return ''; // SQL questions don't need boilerplate invocation
+    }
+
+    const config = getLanguageConfig(language);
+  //config: cpp: {
+  //   wrapper: TEST_CODE_FOR_CPP,
+  //   template: CPP_SOLUTION_TEMPLATE,
+  //   dataTypeMap: {
+  //     '2d_array_int': 'vector<vector<int>>',
+  //     'array_int': 'vector<int>',
+  //     '2d_array_char': 'vector<vector<char>>',
+  //     'array_char': 'vector<char>',
+  //     'boolean': 'bool',
+  //     'string': 'string',
+  //     'float': 'float',
+  //     'int': 'int',
+  //   },
+  //   formatArgument: (type, val) => {
+  //     if (type === '2d_array_int') return `vector<vector<int>>{${val.map((subArr: any) => `{${subArr.join(',')}}`).join(',')}}`;
+  //     if (type === '2d_array_char') return `vector<vector<char>>{${val.map((subArr: any) => `{${JSON.stringify(subArr).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`).join(',')}}`;
+  //     if (type === 'array_int') return `vector<int>{${val.join(',')}}`;
+  //     if (type === 'array_char') return `vector<char>{${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
+  //     return JSON.stringify(val);
+  //   },
+  //   formatParameters: (params, getDT) => params.map(p => `${getDT('cpp', p.type)} ${p.paramName}`).join(', '),
+  //   getInvocation: (call, outType, getDT) => {
+  //     if (outType === 'array_int' || outType === 'array_char') {
+  //       return `${getDT('cpp', outType)} arr = ${call}; cout<<"<logsOutputSeprator>";for(int i=0;i<arr.size();i++)cout<<arr[i]<<" ";`;
+  //     }
+  //     return `${getDT('cpp', outType)} value = ${call}; cout<<"<logsOutputSeprator>"<<value;`;
+  //   }
+  // },
+  console.log('language=', language);
+console.log('outputType=', question.outputType);
+console.log('config=', config);
+console.log('getInvocation=', config.getInvocation);
     let functionCall = `solution(${await this.getFunctionArguments(
       language,
       question.inputType,
       question.testCases[testCaseIndex].input,
     )})`;
-    if (language === 'cpp') {
-      if (
-        question.outputType === 'array_int' ||
-        question.outputType === 'array_char'
-      ) {
-        return `${getDatatypeOfParamters(
-          language,
-          question.outputType,
-        )} arr = ${functionCall}; cout<<"<logsOutputSeprator>";for(int i=0;i<${
-          question.testCases[testCaseIndex].output.length
-        };i++)cout<<arr[i]<<" ";`;
-      } else {
-        return `${getDatatypeOfParamters(
-          language,
-          question.outputType,
-        )} value = ${functionCall}; cout<<"<logsOutputSeprator>"<<value;`;
-      }
-    } else if (language === 'java') {
-      if (
-        question.outputType === 'array_int' ||
-        question.outputType === 'array_char'
-      ) {
-        return `${getDatatypeOfParamters(
-          language,
-          question.outputType,
-        )} arr = ${functionCall}; System.out.print("<logsOutputSeprator>");for(int i=0;i<arr.length;i++)System.out.print(arr[i]+" ");`;
-      } else {
-        return `${getDatatypeOfParamters(
-          language,
-          question.outputType,
-        )} value = ${functionCall}; System.out.print("<logsOutputSeprator>"+value);`;
-      }
-    } else if (language === 'python') {
-      if (
-        question.outputType === 'array_int' ||
-        question.outputType === 'array_char'
-      ) {
-        return `arr=${functionCall};\nprint("<logsOutputSeprator>",end='');\nfor el in arr:\n\tprint(el,end=' ');`;
-      } else {
-        return `value=${functionCall};\nprint("<logsOutputSeprator>",value,end='',sep='');`;
-      }
-    } else if (language === 'javascript') {
-      if (
-        question.outputType === 'array_int' ||
-        question.outputType === 'array_char'
-      ) {
-        return `arr = ${functionCall}; if(arr) console.log("<logsOutputSeprator>",...arr);else console.log("<logsOutputSeprator>",arr);`;
-      } else {
-        return `value = ${functionCall}; console.log("<logsOutputSeprator>",value);`;
-      }
-    } else if (language === 'go') {
-      if (
-        question.outputType === 'array_int' ||
-        question.outputType === 'array_char'
-      ) {
-        return `arr := ${functionCall}; fmt.Print("<logsOutputSeprator>"); for i := 0; i < len(arr); i++ { fmt.Print(arr[i], " ") }`;
-      } else {
-        return `value := ${functionCall}; fmt.Printf("<logsOutputSeprator>%v\\n", value)`;
-      }
-    } else if (language === 'csharp') {
-      if (
-        question.outputType === 'array_int' ||
-        question.outputType === 'array_char'
-      ) {
-        return `${getDatatypeOfParamters(
-          language,
-          question.outputType,
-        )} arr = ${functionCall}; Console.Write("<logsOutputSeprator>");for(int i=0;i<arr.Length;i++)Console.Write(arr[i]+" ");`;
-      } else {
-        return `${getDatatypeOfParamters(
-          language,
-          question.outputType,
-        )} value = ${functionCall}; Console.Write("<logsOutputSeprator>"+value);`;
-      }
-    } else if (language === 'typescript') {
-      if (
-        question.outputType === 'array_int' ||
-        question.outputType === 'array_char'
-      ) {
-        return `let arr = ${functionCall}; if(arr) console.log("<logsOutputSeprator>",...arr);else console.log("<logsOutputSeprator>",arr);`;
-      } else {
-        return `let value = ${functionCall}; console.log("<logsOutputSeprator>",value);`;
-      }
-    }
+    console.log("🚀 ~ CompilerService ~ getInvocationCode ~ functionCall:", functionCall)
+
+    // return config.getInvocation(functionCall, question.outputType, getDatatypeOfParamters);
+    const result = config.getInvocation(
+    functionCall,
+    question.outputType,
+    getDatatypeOfParamters
+);
+
+console.log('invocationResult=', result);
+
+return result;
   }
 
-  async getConvertedOutput(userOutput, outputType, language) {
+
+  async getConvertedOutput(
+    userOutput: string,
+    outputType: string,
+    language: string,
+  ) {
+    console.log("userOutput", userOutput);
     try {
-      let convertedOutput;
-      if (
-        userOutput &&
-        (outputType === 'array_char' || outputType === 'array_int')
-      ) {
-        convertedOutput = userOutput.split(' ');
-        convertedOutput =
-          outputType === 'array_int'
-            ? await convertedOutput.map(Number)
-            : convertedOutput;
-      } else if (
-        userOutput &&
-        (outputType === 'int' || outputType === 'boolean')
-      ) {
-        if ((language === 'cpp' || language === 'csharp') && outputType === 'boolean')
-          userOutput =
-            userOutput === '1' ? true : userOutput === '0' ? false : userOutput === 'True' ? true : userOutput === 'False' ? false : userOutput;
-        else if (language === 'python' && outputType === 'boolean')
-          userOutput =
-            userOutput === 'True'
-              ? true
-              : userOutput === 'False'
-              ? false
-              : userOutput;
-        convertedOutput = JSON.parse(userOutput);
-      } else if (outputType === 'string') {
-        convertedOutput = userOutput;
-      } else convertedOutput = null;
-      return convertedOutput;
+      if (userOutput == null || userOutput === '') {
+        return null;
+      }
+
+      switch (outputType) {
+        case 'int':
+          return Number(userOutput);
+
+        case 'float':
+          return Number(userOutput);
+
+        case 'boolean': {
+          if (language === 'cpp' || language === 'csharp') {
+            if (userOutput === '1' || userOutput === 'True') return true;
+            if (userOutput === '0' || userOutput === 'False') return false;
+          }
+
+          // Python prints True/False
+          if (language === 'python') {
+            if (userOutput === 'True') return true;
+            if (userOutput === 'False') return false;
+          }
+
+          // JavaScript / Java / Go / Rust etc.
+          if (userOutput === 'true') return true;
+          if (userOutput === 'false') return false;
+
+          return JSON.parse(userOutput);
+        }
+
+        case 'string':
+          return userOutput;
+
+        case 'array_int': {
+          const output = userOutput.trim();
+
+          // Rust / JSON style: [0, 1]
+          if (output.startsWith('[') && output.endsWith(']')) {
+            return JSON.parse(output);
+          }
+
+          // Existing format: 0 1
+          return output.split(/\s+/).map(Number);
+        }
+
+        case 'array_char': {
+          const output = userOutput.trim();
+
+          if (output.startsWith('[') && output.endsWith(']')) {
+            return JSON.parse(output);
+          }
+
+          return output.split(/\s+/);
+        }
+
+        default:
+          return userOutput;
+      }
     } catch (error) {
+      console.error('getConvertedOutput error:', error);
       return null;
     }
   }
@@ -306,18 +222,18 @@ export class CompilerService {
             language === 'go'
               ? msg + 'go\n'
               : language === 'python'
-              ? msg + 'python3\n'
-              : language === 'javascript'
-              ? msg + 'node\n'
-              : language === 'java'
-              ? msg + 'javac\n'
-              : language === 'cpp'
-              ? msg + 'g++\n'
-              : language === 'csharp'
-              ? msg + 'mcs\n'
-              : language === 'typescript'
-              ? msg + 'tsc\n'
-              : '';
+                ? msg + 'python3\n'
+                : language === 'javascript'
+                  ? msg + 'node\n'
+                  : language === 'java'
+                    ? msg + 'javac\n'
+                    : language === 'cpp'
+                      ? msg + 'g++\n'
+                      : language === 'csharp'
+                        ? msg + 'mcs\n'
+                        : language === 'typescript'
+                          ? msg + 'tsc\n'
+                          : '';
           resolve({
             result: false,
             logs: msg + stderr,
@@ -362,47 +278,73 @@ export class CompilerService {
     question,
   ) {
     try {
-    const solution_code =
-        language === 'go'
-          ? TEST_CODE_FOR_GO.replace('SOLUTION_METHOD', code)
-          : language === 'cpp'
-          ? TEST_CODE_FOR_CPP.replace('SOLUTION_METHOD', code)
-          : language === 'java'
-          ? TEST_CODE_FOR_JAVA.replace('SOLUTION_METHOD', code)
-          : language === 'python'
-          ? TEST_CODE_FOR_PYTHON.replace('SOLUTION_METHOD', code)
-          : language === 'javascript'
-          ? TEST_CODE_FOR_JS.replace('SOLUTION_METHOD', code)
-          : language === 'csharp'
-          ? TEST_CODE_FOR_CSHARP.replace('SOLUTION_METHOD', code)
-          : language === 'typescript'
-          ? TEST_CODE_FOR_TYPESCRIPT.replace('SOLUTION_METHOD', code)
-          : '';
-       if (!solution_code) throw new Error(`Unsupported language: ${language}`);
-       const languageId=JUDGE0_LANGUAGE_IDS[language]
-       if (!languageId) throw new Error(`No Judge0 language ID found for: ${language}`);
+      if (!question || !question.testCases) {
+        throw new Error('Question details (test cases) are missing or incomplete.');
+      }
+
+      // Ensure inputType is at least an empty array to avoid looping errors
+      question.inputType = question.inputType || [];
+
+      const languageId = JUDGE0_LANGUAGE_IDS[language];
+      console.log("🚀 ~ CompilerService ~ compileAndRun ~ languageId:", languageId)
+      if (!languageId) throw new Error(`No Judge0 language ID found for: ${language}`);
+
+      let solution_code = '';
+
+      if (question.questionType === QUESTION_TYPE.DATABASE) {
+        solution_code = code; // SQL just runs as is
+      } else {
+        const config = getLanguageConfig(language);
+        const wrapper = config.wrapper;
+        //  TEST_CODE_FOR_CPP = `#include<bits/stdc++.h>
+        
+        // using namespace std;
+        
+        // SOLUTION_METHOD
+        
+        // int main() {
+        
+        //   INVOCATION
+        
+        // 	return 0;
+        // }`;
+        solution_code = wrapper.replace('SOLUTION_METHOD', code);
+      }
+
       const submissions = await Promise.all(
         question.testCases.map(async (_, i) => {
           const invocationCode = await this.getInvocationCode(language, question, i);
+          console.log("🚀 ~ CompilerService ~ compileAndRun ~ invocationCode:", invocationCode)
           const sourceCode = solution_code.replace('INVOCATION', invocationCode);
+
+          // For SQL, concatenating setup (input) with query (solution)
+          if (question.questionType === QUESTION_TYPE.DATABASE) {
+            const setupSql = question.testCases[i].input[0] || '';
+            const finalSql = `${setupSql}\n\n-- User Solution\n${code}`;
+            return { source_code: finalSql, language_id: languageId };
+          }
+
           return { source_code: sourceCode, language_id: languageId };
         }),
       );
-      const timeLimit   = Math.min(question.constraints?.timeLimit ?? 2, 15.0);
+
+      const timeLimit = Math.min(question.constraints?.timeLimit ?? 2000, 15000) / 1000;
       const memoryLimit = question.constraints?.memoryLimit ?? 256;
+
       const tokens = await this.submitBatchToJudge0(submissions, timeLimit, memoryLimit);
       console.log("🚀 ~ CompilerService ~ compileAndRun ~ tokens:", tokens)
       const judge0Results = await this.pollBatchResults(tokens);
+      console.log("🚀 ~ CompilerService ~ compileAndRun ~ judge0Results:", judge0Results)
 
       const testCaseResults = await Promise.all(
         judge0Results.map((result, i) =>
           this.processJudge0Result(result, question, i, language),
         ),
       );
-     
+
       return testCaseResults;
     } catch (error) {
-      return error.message;
+      return [{ result: false, logs: error.message }];
     }
   }
 
@@ -411,6 +353,7 @@ export class CompilerService {
     timeLimit: number = 2,
     memoryLimit: number = 256,
   ) {
+    console.log("🚀 ~ CompilerService ~ submitBatchToJudge0 ~ submissions:", submissions)
     const response = await fetch(`${process.env.JUDGE0_API_URL}/submissions/batch?base64_encoded=false`, {
       method: 'POST',
       headers: {
@@ -421,10 +364,11 @@ export class CompilerService {
           ...s,
           cpu_time_limit: timeLimit,            // from question.constraints.timeLimit has to implement in frontend
           memory_limit: memoryLimit * 1024,     // MB -> KB (Judge0 expects KB)
-          enable_network: false,                
+          enable_network: false,
         })),
       }),
     });
+    console.log("🚀 ~ CompilerService ~ submitBatchToJudge0 ~ response:", response)
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => null);
@@ -446,19 +390,33 @@ export class CompilerService {
 
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
       await new Promise((res) => setTimeout(res, POLL_INTERVAL_MS));
+      console.log("polling");
 
       const response = await fetch(
-        `${process.env.JUDGE0_API_URL}/submissions/batch?tokens=${tokenList}&base64_encoded=false&fields=token,stdout,stderr,compile_output,status,time,memory`,
-        
+        `${process.env.JUDGE0_API_URL}/submissions/batch?tokens=${tokenList}&base64_encoded=true&fields=token,stdout,stderr,compile_output,status,time,memory`,
+
       );
 
-      if (!response.ok) {
-        throw new Error(`Judge0 polling failed: ${response.statusText}`);
-      }
+        if (!response.ok) {
+          let errorBody;
 
+          try {
+            errorBody = await response.text();
+          } catch {
+            errorBody = response.statusText;
+          }
+
+          throw new Error(
+            `Error (${response.status}): ${errorBody}`
+          );
+        }
       const data = await response.json();
       const submissions = data.submissions;
-
+      submissions.forEach((s) => {
+        s.stdout = this.decodeBase64(s.stdout);
+        s.stderr = this.decodeBase64(s.stderr);
+        s.compile_output = this.decodeBase64(s.compile_output);
+      });
       // Check if all submissions are done (no longer in queue or processing)
       const allDone = submissions.every(
         (s) => !JUDGE0_IN_PROGRESS_STATUSES.has(s.status?.id),
@@ -500,9 +458,16 @@ export class CompilerService {
 
     // runtime error, memory limit exceeded etc.
     if (status >= 7) {
+      let logMessage = judge0Result.stderr || judge0Result.status?.description || 'Runtime error';
+
+      // Specifically handle Internal Error (status 13)
+      if (status === 13) {
+        logMessage = 'Judge0 Internal Error: The execution server encountered an issue. Please try running your code again in a few seconds.';
+      }
+
       return {
         result: false,
-        logs: judge0Result.stderr || judge0Result.status?.description || 'Runtime error',
+        logs: logMessage,
         hidden: question.testCases[testCaseIndex].hidden,
         actualOutput: '',
         time: judge0Result.time,
@@ -533,12 +498,12 @@ export class CompilerService {
       result: isCorrect,
       logs: userLogs || '',
       hidden: question.testCases[testCaseIndex].hidden,
-      actualOutput: userOutput ? userOutput.trim() : '',
+      actualOutput: convertedOutput,
       time: judge0Result.time,
       memory: judge0Result.memory,
     };
   }
- // Handles:
+  // Handles:
   //   isOrdered: false  -> sort both arrays before comparing (Two Sum etc.)
   //   tolerance         -> float comparison with tolerance e.g. ±0.001
   //   caseSensitive     -> string comparison case sensitivity
@@ -548,13 +513,13 @@ export class CompilerService {
     outputType: string,
     outputConstraints: any, // has to implement in frontend
   ): boolean {
-    const isOrdered     = outputConstraints?.isOrdered     ?? true;
-    const tolerance     = outputConstraints?.tolerance     ?? 0;
+    const isOrdered = outputConstraints?.isOrdered ?? true;
+    const tolerance = outputConstraints?.tolerance ?? 0;
     const caseSensitive = outputConstraints?.caseSensitive ?? true;
 
     // float with tolerance 
     if (outputType === 'float') {
-      const actualNum   = parseFloat(actual);
+      const actualNum = parseFloat(actual);
       const expectedNum = parseFloat(expected);
       if (isNaN(actualNum) || isNaN(expectedNum)) return false;
       return Math.abs(actualNum - expectedNum) <= tolerance;
@@ -575,7 +540,7 @@ export class CompilerService {
 
       if (!isOrdered) {
         // sort both before comparing — handles Two Sum [0,1] vs [1,0]
-        const sortedActual   = [...actual].sort((a, b) => (a > b ? 1 : -1));
+        const sortedActual = [...actual].sort((a, b) => (a > b ? 1 : -1));
         const sortedExpected = [...expected].sort((a, b) => (a > b ? 1 : -1));
         return JSON.stringify(sortedActual) === JSON.stringify(sortedExpected);
       }
@@ -586,5 +551,11 @@ export class CompilerService {
     //  default: strict equality 
     return JSON.stringify(actual) === JSON.stringify(expected);
   }
+private decodeBase64(value?: string | null) {
+  if (!value) return value;
 
+  return Buffer
+    .from(value, 'base64')
+    .toString('utf8');
+}
 }
