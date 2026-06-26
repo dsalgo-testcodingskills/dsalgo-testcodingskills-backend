@@ -71,53 +71,25 @@ export class CompilerService {
     }
 
     const config = getLanguageConfig(language);
-  //config: cpp: {
-  //   wrapper: TEST_CODE_FOR_CPP,
-  //   template: CPP_SOLUTION_TEMPLATE,
-  //   dataTypeMap: {
-  //     '2d_array_int': 'vector<vector<int>>',
-  //     'array_int': 'vector<int>',
-  //     '2d_array_char': 'vector<vector<char>>',
-  //     'array_char': 'vector<char>',
-  //     'boolean': 'bool',
-  //     'string': 'string',
-  //     'float': 'float',
-  //     'int': 'int',
-  //   },
-  //   formatArgument: (type, val) => {
-  //     if (type === '2d_array_int') return `vector<vector<int>>{${val.map((subArr: any) => `{${subArr.join(',')}}`).join(',')}}`;
-  //     if (type === '2d_array_char') return `vector<vector<char>>{${val.map((subArr: any) => `{${JSON.stringify(subArr).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`).join(',')}}`;
-  //     if (type === 'array_int') return `vector<int>{${val.join(',')}}`;
-  //     if (type === 'array_char') return `vector<char>{${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
-  //     return JSON.stringify(val);
-  //   },
-  //   formatParameters: (params, getDT) => params.map(p => `${getDT('cpp', p.type)} ${p.paramName}`).join(', '),
-  //   getInvocation: (call, outType, getDT) => {
-  //     if (outType === 'array_int' || outType === 'array_char') {
-  //       return `${getDT('cpp', outType)} arr = ${call}; cout<<"<logsOutputSeprator>";for(int i=0;i<arr.size();i++)cout<<arr[i]<<" ";`;
-  //     }
-  //     return `${getDT('cpp', outType)} value = ${call}; cout<<"<logsOutputSeprator>"<<value;`;
-  //   }
-  // },
-  console.log('language=', language);
-console.log('outputType=', question.outputType);
-console.log('config=', config);
-console.log('getInvocation=', config.getInvocation);
+    if (config.buildInvocation) {
+      return config.buildInvocation(
+        question.inputType,
+        question.testCases[testCaseIndex].input,
+        question.outputType
+      );
+    }
+
     let functionCall = `solution(${await this.getFunctionArguments(
       language,
       question.inputType,
       question.testCases[testCaseIndex].input,
     )})`;
-    console.log("🚀 ~ CompilerService ~ getInvocationCode ~ functionCall:", functionCall)
-
     // return config.getInvocation(functionCall, question.outputType, getDatatypeOfParamters);
     const result = config.getInvocation(
     functionCall,
     question.outputType,
     getDatatypeOfParamters
 );
-
-console.log('invocationResult=', result);
 
 return result;
   }
@@ -465,16 +437,23 @@ return result;
 
     // runtime error, memory limit exceeded etc.
     if (status >= 7) {
-      let logMessage = judge0Result.stderr || judge0Result.status?.description || 'Runtime error';
+      const logs: string[] = [];
 
-      // Specifically handle Internal Error (status 13)
-      if (status === 13) {
-        logMessage = 'Judge0 Internal Error: The execution server encountered an issue. Please try running your code again in a few seconds.';
+      if (judge0Result.compile_output?.trim()) {
+        logs.push(`Compilation Warnings:\n${judge0Result.compile_output}`);
+      }
+
+      if (judge0Result.stderr?.trim()) {
+        logs.push(`Runtime Error:\n${judge0Result.stderr}`);
+      }
+
+      if (!logs.length && judge0Result.status?.description) {
+        logs.push(judge0Result.status.description);
       }
 
       return {
         result: false,
-        logs: logMessage,
+        logs: logs.join('\n\n'),
         hidden: question.testCases[testCaseIndex].hidden,
         actualOutput: '',
         time: judge0Result.time,
@@ -491,9 +470,6 @@ return result;
       question.outputType,
       language,
     );
-
-    // use compareOutputs with outputConstraints instead of simple JSON.stringify
-    // this handles: isOrdered, tolerance, caseSensitive
     const isCorrect = this.compareOutputs(
       convertedOutput,
       question.testCases[testCaseIndex].output,
@@ -538,6 +514,9 @@ return result;
         return String(actual).toLowerCase() === String(expected).toLowerCase();
       }
       return String(actual) === String(expected);
+    }
+    if (outputType === 'int') {
+      return Number(actual) === Number(expected);
     }
 
     //  array with order sensitivity 

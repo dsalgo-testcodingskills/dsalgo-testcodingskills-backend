@@ -1,4 +1,9 @@
-export const TEST_CODE_FOR_PYTHON = `import time
+export const TEST_CODE_FOR_PYTHON = `import math
+import collections
+import itertools
+import bisect
+import heapq
+import time
 SOLUTION_METHOD
 if __name__ == '__main__':
   INVOCATION`;
@@ -23,6 +28,9 @@ function main(){
 main()`;
 
 export const TEST_CODE_FOR_JAVA = `import java.util.*;
+import java.io.*;
+import java.math.*;
+
 public class Main{
   SOLUTION_METHOD
   public static void main (String args[]){
@@ -34,8 +42,17 @@ export const TEST_CODE_FOR_GO = `package main
 
 import (
 	"fmt"
-  "strings"
+	"strings"
+	"math"
+	"sort"
+	"strconv"
 )
+
+var _ = fmt.Printf
+var _ = strings.ToLower
+var _ = math.Abs
+var _ = sort.Ints
+var _ = strconv.Itoa
 
 SOLUTION_METHOD
 func main() {
@@ -44,10 +61,10 @@ func main() {
 `;
 
 export const TEST_CODE_FOR_CSHARP = `using System;
-using System.Linq;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 class Program {
   SOLUTION_METHOD
@@ -85,7 +102,24 @@ SOLUTION_METHOD
 fun main(args: Array<String>) {
     INVOCATION
 }`;
+export const TEST_CODE_FOR_C = `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <math.h>
 
+SOLUTION_METHOD
+
+int main() {
+    INVOCATION
+    return 0;
+}`;
+
+export const C_SOLUTION_TEMPLATE = `return_type solution(parameters) {
+    // Write your code only in the provided function
+    // Don't write any code outside this function
+    
+}`;
 export const CPP_SOLUTION_TEMPLATE = `return_type solution(parameters){
   //Write your code only in provided function
   //Dont write any of your code outside this function
@@ -308,6 +342,8 @@ export const LANGUAGE_CATEGORIES = {
     { id: 78, name: 'Kotlin (1.3.70)', internal: 'kotlin' },
     { id: 72, name: 'Ruby (2.7.0)', internal: 'ruby' },
     { id: 83, name: 'Swift (5.2.3)', internal: 'swift' },
+    { id: 50, name: 'C (GCC 9.2.0)', internal: 'c' },
+    { id:48, name: 'C (GCC 7.4.0)', internal: 'c' },
   ],
   [QUESTION_TYPE.DATABASE]: [
     { id: 82, name: 'SQL (SQLite 3.27.2)', internal: 'sql' },

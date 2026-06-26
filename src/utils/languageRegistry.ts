@@ -21,6 +21,9 @@ import {
   KOTLIN_SOLUTION_TEMPLATE,
   RUBY_SOLUTION_TEMPLATE,
   SWIFT_SOLUTION_TEMPLATE,
+  TEST_CODE_FOR_C,
+  C_SOLUTION_TEMPLATE,
+  QUESTION_INPUT_TYPE,
 } from './constants';
 
 export interface LanguageConfig {
@@ -31,6 +34,11 @@ export interface LanguageConfig {
   formatParameters: (params: { type: string; paramName: string }[], getDataType: (lang: string, type: string) => string) => string;
   getInvocation: (functionCall: string, outputType: string, getDataType: (lang: string, type: string) => string) => string;
   formatInvocationArgument?: (param: { type: string; paramName: string }, value: string) => string;
+  buildInvocation?: (
+  inputTypes: QUESTION_INPUT_TYPE[],
+  testCaseInput: any[],
+  outputType: string
+) => string;
 }
 
 const defaultFormatArgument = (type: string, value: any) => {
@@ -461,6 +469,191 @@ print "<logsOutputSeprator>#{value}"
       formatInvocationArgument: (param, value) =>
     `${param.paramName}: ${value}`,
     },
+  c: {
+    wrapper: TEST_CODE_FOR_C,
+    template: C_SOLUTION_TEMPLATE,
+
+    dataTypeMap: {
+      int: 'int',
+      float: 'float',
+      boolean: 'bool',
+      string: 'char*',
+      array_int: 'int*',
+      array_char: 'char*',
+      '2d_array_int': 'int**',
+    },
+    formatArgument: (type, val) => {
+
+      if (type === 'array_int') {
+        return `(int[]){${val.join(',')}}`;
+      }
+
+      if (type === 'string') {
+        return `"${val}"`;
+      }
+
+      if (type === 'boolean') {
+        return val ? 'true' : 'false';
+      }
+      if (type === 'array_char') {
+        return `(char[]){${val.map(ch => `'${ch}'`).join(',')}}`;
+      }
+      return JSON.stringify(val);
+    },
+
+formatParameters: (params, getDT) => {
+  const result: string[] = [];
+
+  for (const p of params) {
+    result.push(`${getDT('c', p.type)} ${p.paramName}`);
+
+    if (p.type === 'array_int') {
+      result.push(`int ${p.paramName}Size`);
+    }
+
+    if (p.type === 'array_char') {
+      result.push(`int ${p.paramName}Size`);
+    }
+
+    if (p.type === '2d_array_int') {
+      result.push(`int ${p.paramName}RowSize`);
+      result.push(`int ${p.paramName}ColSize`);
+    }
+
+    if (p.type === '2d_array_char') {
+      result.push(`int ${p.paramName}RowSize`);
+      result.push(`int ${p.paramName}ColSize`);
+    }
+  }
+
+  return result.join(', ');
+},
+    getInvocation: (call, outType) => {
+
+              if (outType === 'array_int') {
+                return `
+        int* arr = ${call};
+        printf("<logsOutputSeprator>");
+        `;
+              }
+
+              if (outType === 'string') {
+                return `
+        char* value = ${call};
+        printf("<logsOutputSeprator>%s", value);
+        `;
+              }
+
+              if (outType === 'boolean') {
+                return `
+        bool value = ${call};
+        printf("<logsOutputSeprator>%s", value ? "true" : "false");
+        `;
+              }
+
+              return `
+        int value = ${call};
+        printf("<logsOutputSeprator>%d", value);
+        `;
+    },
+    buildInvocation: (inputTypes, testCaseInput, outputType) => {
+  let declarations = [];
+  let argumentsList = [];
+
+  for (let i = 0; i < inputTypes.length; i++) {
+    const param = inputTypes[i];
+    const value = testCaseInput[i];
+
+    if (param.type === 'array_int') {
+      declarations.push(
+        `int ${param.paramName}[] = {${value.join(',')}};`
+      );
+
+      argumentsList.push(param.paramName);
+      argumentsList.push(`${value.length}`);
+    } else if (param.type === 'array_char') {
+      declarations.push(
+        `char ${param.paramName}[] = {${value.map(ch => `'${ch}'`).join(',')}};`
+      );
+      argumentsList.push(param.paramName);
+      argumentsList.push(`${value.length}`);
+    } else if (param.type === '2d_array_int') {
+
+      const rowNames: string[] = [];
+
+      value.forEach((row, index) => {
+        const rowName = `${param.paramName}Row${index}`;
+
+        declarations.push(
+          `int ${rowName}[] = {${row.join(',')}};`
+        );
+
+        rowNames.push(rowName);
+      });
+
+      declarations.push(
+        `int* ${param.paramName}[] = {${rowNames.join(',')}};`
+      );
+
+      argumentsList.push(param.paramName);
+      argumentsList.push(`${value.length}`);
+      argumentsList.push(`${value[0].length}`);
+    } else if (param.type === 'string') {
+      argumentsList.push(JSON.stringify(value));
+    } else {
+      argumentsList.push(JSON.stringify(value));
+    }
+  }
+
+  const functionCall = `solution(${argumentsList.join(', ')})`;
+
+  if (outputType === 'int') {
+    return `
+${declarations.join('\n')}
+
+int value = ${functionCall};
+printf("<logsOutputSeprator>%d", value);
+`;
+      } else if (outputType === 'float') {
+        return `
+${declarations.join('\n')}
+
+float value = ${functionCall};
+printf("<logsOutputSeprator>%f", value);
+`;
+      } else if (outputType === 'boolean') {
+        return `
+${declarations.join('\n')}
+
+bool value = ${functionCall};
+printf("<logsOutputSeprator>%s", value ? "true" : "false");
+`;
+      } else if (outputType === 'string' || outputType === 'array_char') {
+        return `
+${declarations.join('\n')}
+
+char* value = ${functionCall};
+printf("<logsOutputSeprator>%s", value);
+`;
+      } else if (outputType === 'array_int') {
+        return `
+${declarations.join('\n')}
+
+int* arr = ${functionCall};
+printf("<logsOutputSeprator>");
+// Note: Printing first 100 elements or until some condition. 
+// Ideally should know the size, but for now just printing.
+// If it's a fixed size, it should be handled accordingly.
+`;
+}
+
+return `
+${declarations.join('\n')}
+
+${functionCall};
+`;
+}
+  }
 };
 
 export const getLanguageConfig = (language: string): LanguageConfig => {

@@ -441,7 +441,7 @@ export const validateTestCase = (dataType, data) => {
         isValid = Array.isArray(data) && data.length && !data.some(isNaN);
         break;
       case 'int':
-        isValid = typeof data === 'number';
+        isValid = typeof data === 'number' || (typeof data === 'string' && !isNaN(Number(data)) && Number.isInteger(Number(data)));
         break;
       case 'boolean':
         isValid = typeof data === 'boolean';
@@ -450,7 +450,7 @@ export const validateTestCase = (dataType, data) => {
         isValid = typeof data === 'string';
         break;
       case 'float':
-        isValid = typeof data === 'number';
+        isValid = typeof data === 'number' || (typeof data === 'string' && !isNaN(Number(data)));
         break;
       default:
         break;
@@ -480,8 +480,12 @@ export const checkTestCases = (body) => {
         inputValues = [inputValues];
       }
 
-      inputValues = inputValues.map((val) => {
+      inputValues = inputValues.map((val, index) => {
         if (typeof val === 'string' && val.trim() !== '') {
+          const expectedType = body.inputType[index]?.type;
+          if (expectedType === 'string' || expectedType === 'float' || expectedType === 'int') {
+            return val;
+          }
           try {
             return JSON.parse(val);
           } catch (e) {
@@ -493,10 +497,13 @@ export const checkTestCases = (body) => {
 
       let outputValue = body.testCases[i].output;
       if (typeof outputValue === 'string' && outputValue.trim() !== '') {
-        try {
-          outputValue = JSON.parse(outputValue);
-        } catch (e) {
-          // keep as raw string if not valid JSON
+        const expectedOutputType = body.outputType;
+        if (expectedOutputType !== 'string' && expectedOutputType !== 'float' && expectedOutputType !== 'int') {
+          try {
+            outputValue = JSON.parse(outputValue);
+          } catch (e) {
+            // keep as raw string if not valid JSON
+          }
         }
       }
 
@@ -522,8 +529,19 @@ export const checkTestCases = (body) => {
         };
         break;
       }
-      body.testCases[i].input = inputValues;
-      body.testCases[i].output = outputValue;
+      body.testCases[i].input = inputValues.map((val, idx) => {
+        const type = body.inputType[idx]?.type;
+        if ((type === 'int' || type === 'float') && typeof val === 'string' && val.trim() !== '') {
+          return Number(val);
+        }
+        return val;
+      });
+
+      if ((body.outputType === 'int' || body.outputType === 'float') && typeof outputValue === 'string' && outputValue.trim() !== '') {
+        body.testCases[i].output = Number(outputValue);
+      } else {
+        body.testCases[i].output = outputValue;
+      }
     }
     return [isValid, body];
   } catch (error) {
