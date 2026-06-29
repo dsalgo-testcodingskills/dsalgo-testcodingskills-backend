@@ -1,11 +1,11 @@
-import { config } from 'dotenv';
-import { BadRequestException } from '@nestjs/common';
-import * as sgMail from '@sendgrid/mail';
-import * as nodeMailer from 'nodemailer';
-import { UserRoleEnum } from './enum';
-export { getLanguageDataType as getDatatypeOfParamters } from '../utils/languageRegistry';
+import { config } from "dotenv";
+import { BadRequestException } from "@nestjs/common";
+import * as sgMail from "@sendgrid/mail";
+import * as nodeMailer from "nodemailer";
+import { UserRoleEnum } from "./enum";
+export { getLanguageDataType as getDatatypeOfParamters } from "../utils/languageRegistry";
 
-const smtpTransport = require('nodemailer-smtp-transport');
+const smtpTransport = require("nodemailer-smtp-transport");
 config();
 
 const authuser = process.env.MAIL_AUTH_USERNAME;
@@ -13,8 +13,8 @@ const authPassword = process.env.MAIL_AUTH_PASSWORD;
 
 const transporter = nodeMailer.createTransport(
   smtpTransport({
-    service: 'gmail',
-    host: 'smtp.gmail.com',
+    service: "gmail",
+    host: "smtp.gmail.com",
     auth: {
       user: authuser,
       pass: authPassword,
@@ -36,7 +36,7 @@ type mailOptions = {
 };
 
 function invitationHTML(link, text, logo) {
-  let logoTemplate = '';
+  let logoTemplate = "";
   if (logo) {
     logoTemplate = `
   <!DOCTYPE html>
@@ -376,7 +376,7 @@ export async function sendMail(
   link: string = undefined,
   logoURl: string = undefined,
 ) {
-  if (link && link.trim() != '') {
+  if (link && link.trim() != "") {
     mailOptions.html = invitationHTML(link, mailOptions.text, logoURl);
   }
   if (mailOptions.cc && !mailOptions.cc.length) {
@@ -390,7 +390,7 @@ export async function sendMail(
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      console.log('Error in senMail1 function', error);
+      console.log("Error in senMail1 function", error);
       return error;
       //  throw new Error(error.message);
     }
@@ -404,19 +404,19 @@ export const validateTestCase = (dataType, data) => {
     let isValid = false;
 
     switch (dataType) {
-      case '2d_array_int':
+      case "2d_array_int":
         // Check if each element is an array of numbers
         isValid =
           Array.isArray(data) && // Check if it's an array
           data.every((subArray) => {
             return (
               Array.isArray(subArray) &&
-              subArray.every((elem) => typeof elem === 'number')
+              subArray.every((elem) => typeof elem === "number")
             );
           });
         break;
 
-      case '2d_array_char':
+      case "2d_array_char":
         // Check if each element is an array of single characters
         isValid =
           Array.isArray(data) && // Check if it's an array
@@ -424,38 +424,44 @@ export const validateTestCase = (dataType, data) => {
             return (
               Array.isArray(subArray) &&
               subArray.every(
-                (elem) => typeof elem === 'string' && elem.length === 1,
+                (elem) => typeof elem === "string" && elem.length === 1,
               )
             );
           });
         break;
-      case 'array_char':
+      case "array_char":
         // check if any elem is not a number
         isValid =
           Array.isArray(data) &&
           data.length &&
           data.some((d) => d.length === 1 && isNaN(d));
         break;
-      case 'array_int':
+      case "array_int":
         // check if any elem is a number
         isValid = Array.isArray(data) && data.length && !data.some(isNaN);
         break;
-      case 'int':
-        isValid = typeof data === 'number';
+      case "int":
+        isValid = Number.isInteger(data);
         break;
-      case 'boolean':
-        isValid = typeof data === 'boolean';
+      case "float":
+        if (typeof data === "number") {
+          isValid = !Number.isNaN(data);
+        } else if (typeof data === "string") {
+          isValid = data.trim() !== "" && !Number.isNaN(parseFloat(data));
+        } else {
+          isValid = false;
+        }
         break;
-      case 'string':
-        isValid = typeof data === 'string';
+      case "boolean":
+        isValid = typeof data === "boolean";
         break;
-      case 'float':
-        isValid = typeof data === 'number';
+      case "string":
+        isValid = typeof data === "string";
         break;
       default:
         break;
     }
-
+    
     return isValid;
   } catch (error) {
     return false;
@@ -480,8 +486,13 @@ export const checkTestCases = (body) => {
         inputValues = [inputValues];
       }
 
-      inputValues = inputValues.map((val) => {
-        if (typeof val === 'string' && val.trim() !== '') {
+      inputValues = inputValues.map((val, index) => {
+       
+        const type = body.inputType[index].type;
+        if (typeof val === "string" && val.trim() !== "") {
+          if (type === "float") {
+            return val;
+          }
           try {
             return JSON.parse(val);
           } catch (e) {
@@ -490,16 +501,23 @@ export const checkTestCases = (body) => {
         }
         return val;
       });
+      console.log("🚀 ~ body sjkgf", body);
+
 
       let outputValue = body.testCases[i].output;
       if (typeof outputValue === 'string' && outputValue.trim() !== '') {
-        try {
+        const expectedOutputType = body.outputType;
+        if(expectedOutputType!=='float' && expectedOutputType!=='int'){
+          try {
+          console.log("🚀 ~ before checkTestCases ~ outputValue:", outputValue);
           outputValue = JSON.parse(outputValue);
+          console.log("🚀 ~ after checkTestCases ~ outputValue:", outputValue);
         } catch (e) {
           // keep as raw string if not valid JSON
         }
+        }
       }
-
+      console.log("🚀 ~ checkTestCases ~ body:", JSON.stringify(body));
       //Validate each of the input values is of the data type specified.
       for (let j = 0; j < inputValues.length; j++) {
         if (
@@ -511,12 +529,14 @@ export const checkTestCases = (body) => {
         }
       }
 
+      console.log("🚀 ~ checkTestCases ~ inputValues:", inputValues);
       if (inputValues.length <= 0) isValid = false;
 
       isValid = isValid && validateTestCase(body.outputType, outputValue);
+      console.log("🚀 ~ checkTestCases ~ isValid:", isValid);
       if (!isValid) {
         body = {
-          message: 'Invalid test case',
+          message: "Invalid test case",
           statusCode: 400,
           data: { failedcaseIndex: i },
         };
@@ -524,13 +544,13 @@ export const checkTestCases = (body) => {
       }
       body.testCases[i].input = inputValues;
       body.testCases[i].output = outputValue;
+      console.log("🚀 ~ checkTestCases ~ body:", body);
     }
     return [isValid, body];
   } catch (error) {
     throw new BadRequestException(error.message);
   }
 };
-
 
 export function normalizeCompanyName(name: string): string {
   return name
@@ -541,21 +561,21 @@ export function normalizeCompanyName(name: string): string {
 }
 
 export function extractDomain(email: string): string | null {
-  const parts = email.split('@');
+  const parts = email.split("@");
   return parts.length === 2 ? parts[1].toLowerCase() : null;
 }
 
 export function extractCompanyFromDomain(domain: string): string {
-  return domain.split('.')[0];
+  return domain.split(".")[0];
 }
 
 export function escapeRegex(text: string) {
-  return text ? text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+  return text ? text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "";
 }
 
 export const isSuperAdmin = (request: any): boolean => {
   try {
-    const role = request?.payload?.['custom:role'];
+    const role = request?.payload?.["custom:role"];
     return role === UserRoleEnum.SUPER_ADMIN;
   } catch (error) {
     return false;
@@ -564,5 +584,5 @@ export const isSuperAdmin = (request: any): boolean => {
 
 export const isSubscriptionExpired = (sub) => {
   const currentUnix = Math.floor(Date.now() / 1000);
-  return sub.status === 'active' && sub.current_end < currentUnix;
+  return sub.status === "active" && sub.current_end < currentUnix;
 };

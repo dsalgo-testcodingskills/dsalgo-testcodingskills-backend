@@ -98,7 +98,7 @@ export class QuestionsController {
 
       //Check for each test case whether valid or not
       let isValid;
-      console.log(body);
+      // console.log(body);
       [isValid, body] = checkTestCases(body);
 
       if (!isValid) return body;

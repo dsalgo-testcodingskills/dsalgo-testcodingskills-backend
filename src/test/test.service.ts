@@ -11,7 +11,7 @@ import {
 import { TestDocument } from './SCHEMA/test.schema';
 import { MoodDocument } from './SCHEMA/mood.schema';
 
-import * as moment from 'moment';
+import moment from "moment";
 import { Types } from 'mongoose';
 import * as AWS from 'aws-sdk';
 import { OrganizationDocument } from '../auth/schema/organization.schema';
@@ -201,7 +201,7 @@ export class TestService {
         return test;
       }
       if (test?.testExpiry) {
-        const expiry = test?.testExpiry;
+        const expiry = moment(test.testExpiry).valueOf();
         const now = moment().valueOf();
         const isExpired = expiry <= now ? true : false;
         if (isExpired) {

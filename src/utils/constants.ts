@@ -33,16 +33,19 @@ public class Main{
 export const TEST_CODE_FOR_GO = `package main
 
 import (
-	"fmt"
-  "strings"
+  "fmt"
+  "time"
 )
 
+var _ = fmt.Printf
+var _ = time.Now
+
 SOLUTION_METHOD
+
 func main() {
   INVOCATION
 }
 `;
-
 export const TEST_CODE_FOR_CSHARP = `using System;
 using System.Linq;
 using System.Diagnostics;
