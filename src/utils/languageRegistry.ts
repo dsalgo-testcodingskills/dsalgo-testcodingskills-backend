@@ -481,6 +481,7 @@ print "<logsOutputSeprator>#{value}"
       array_int: 'int*',
       array_char: 'char*',
       '2d_array_int': 'int**',
+      '2d_array_char': 'char**'
     },
     formatArgument: (type, val) => {
 
@@ -593,6 +594,27 @@ formatParameters: (params, getDT) => {
 
       declarations.push(
         `int* ${param.paramName}[] = {${rowNames.join(',')}};`
+      );
+
+      argumentsList.push(param.paramName);
+      argumentsList.push(`${value.length}`);
+      argumentsList.push(`${value[0].length}`);
+    } else if (param.type === '2d_array_char') {
+
+      const rowNames: string[] = [];
+
+      value.forEach((row, index) => {
+        const rowName = `${param.paramName}Row${index}`;
+
+        declarations.push(
+          `char ${rowName}[] = {${row.map(ch => `'${ch}'`).join(',')}};`
+        );
+
+        rowNames.push(rowName);
+      });
+
+      declarations.push(
+        `char* ${param.paramName}[] = {${rowNames.join(',')}};`
       );
 
       argumentsList.push(param.paramName);
