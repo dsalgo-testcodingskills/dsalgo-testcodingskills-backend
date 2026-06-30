@@ -420,21 +420,34 @@ export const validateTestCase = (dataType, data) => {
         // Check if each element is an array of single characters
         isValid =
           Array.isArray(data) && // Check if it's an array
+          data.length > 0 &&
           data.every((subArray) => {
             return (
               Array.isArray(subArray) &&
-              subArray.every(
-                (elem) => typeof elem === 'string' && elem.length === 1,
-              )
+              subArray.every((elem) => {
+                const str = String(elem).trim();
+                let cleanCh = str;
+                if ((cleanCh.startsWith('"') && cleanCh.endsWith('"')) || (cleanCh.startsWith("'") && cleanCh.endsWith("'"))) {
+                  cleanCh = cleanCh.slice(1, -1);
+                }
+                return cleanCh.length === 1;
+              })
             );
           });
         break;
       case 'array_char':
-        // check if any elem is not a number
+        // check if all elements are single characters
         isValid =
           Array.isArray(data) &&
-          data.length &&
-          data.some((d) => d.length === 1 && isNaN(d));
+          data.length > 0 &&
+          data.every((d) => {
+            const str = String(d).trim();
+            let cleanCh = str;
+            if ((cleanCh.startsWith('"') && cleanCh.endsWith('"')) || (cleanCh.startsWith("'") && cleanCh.endsWith("'"))) {
+              cleanCh = cleanCh.slice(1, -1);
+            }
+            return cleanCh.length === 1;
+          });
         break;
       case 'array_int':
         // check if any elem is a number
@@ -498,7 +511,12 @@ export const checkTestCases = (body) => {
             return val;
           }
           try {
-            return JSON.parse(val);
+            // Replace single quotes with double quotes for valid JSON parsing
+            let formattedVal = val.trim();
+            if (formattedVal.startsWith('[') && formattedVal.endsWith(']')) {
+              formattedVal = formattedVal.replace(/'/g, '"');
+            }
+            return JSON.parse(formattedVal);
           } catch (e) {
             return val;
           }
@@ -511,7 +529,11 @@ export const checkTestCases = (body) => {
         const expectedOutputType = body.outputType;
         if (expectedOutputType !== 'string' && expectedOutputType !== 'char' && expectedOutputType !== 'float' && expectedOutputType !== 'int') {
           try {
-            outputValue = JSON.parse(outputValue);
+            let formattedOut = outputValue.trim();
+            if (formattedOut.startsWith('[') && formattedOut.endsWith(']')) {
+              formattedOut = formattedOut.replace(/'/g, '"');
+            }
+            outputValue = JSON.parse(formattedOut);
           } catch (e) {
             // keep as raw string if not valid JSON
           }
@@ -552,6 +574,29 @@ export const checkTestCases = (body) => {
           }
           return cleanVal;
         }
+        if (type === 'array_char' && Array.isArray(val)) {
+          return val.map((item) => {
+            const str = String(item).trim();
+            if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+              return str.slice(1, -1);
+            }
+            return str;
+          });
+        }
+        if (type === '2d_array_char' && Array.isArray(val)) {
+          return val.map((row) => {
+            if (Array.isArray(row)) {
+              return row.map((item) => {
+                const str = String(item).trim();
+                if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+                  return str.slice(1, -1);
+                }
+                return str;
+              });
+            }
+            return row;
+          });
+        }
         return val;
       });
 
@@ -563,6 +608,27 @@ export const checkTestCases = (body) => {
           cleanOut = cleanOut.slice(1, -1);
         }
         body.testCases[i].output = cleanOut;
+      } else if (body.outputType === 'array_char' && Array.isArray(outputValue)) {
+        body.testCases[i].output = outputValue.map((item) => {
+          const str = String(item).trim();
+          if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+            return str.slice(1, -1);
+          }
+          return str;
+        });
+      } else if (body.outputType === '2d_array_char' && Array.isArray(outputValue)) {
+        body.testCases[i].output = outputValue.map((row) => {
+          if (Array.isArray(row)) {
+            return row.map((item) => {
+              const str = String(item).trim();
+              if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+                return str.slice(1, -1);
+              }
+              return str;
+            });
+          }
+          return row;
+        });
       } else {
         body.testCases[i].output = outputValue;
       }

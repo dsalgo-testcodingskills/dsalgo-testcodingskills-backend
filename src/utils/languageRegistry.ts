@@ -619,7 +619,7 @@ print "<logsOutputSeprator>#{value}"
           argumentsList.push(`${value.length}`);
         } else if (param.type === 'array_char') {
           declarations.push(
-            `char ${param.paramName}[] = {${value.map(ch => `'${ch}'`).join(',')}};`
+            `char ${param.paramName}[] = {${value.map(ch => `'${ch}'`).join(',')}, '\\0'};`
           );
           argumentsList.push(param.paramName);
           argumentsList.push(`${value.length}`);
@@ -652,7 +652,7 @@ print "<logsOutputSeprator>#{value}"
             const rowName = `${param.paramName}Row${index}`;
 
             declarations.push(
-              `char ${rowName}[] = {${row.map(ch => `'${ch}'`).join(',')}};`
+              `char ${rowName}[] = {${row.map(ch => `'${ch}'`).join(',')}, '\\0'};`
             );
 
             rowNames.push(rowName);

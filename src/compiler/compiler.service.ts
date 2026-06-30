@@ -157,6 +157,19 @@ return result;
           return output.split(/\s+/);
         }
 
+        case '2d_array_int':
+        case '2d_array_char': {
+          const output = userOutput.trim();
+          if (output.startsWith('[') && output.endsWith(']')) {
+            try {
+              return JSON.parse(output.replace(/'/g, '"'));
+            } catch (e) {
+              // ignore
+            }
+          }
+          return userOutput;
+        }
+
         default:
           return userOutput;
       }
@@ -510,11 +523,35 @@ return result;
 
     // string with case sensitivity 
     if (outputType === 'string') {
-      if (!caseSensitive) {
-        return String(actual).toLowerCase() === String(expected).toLowerCase();
+      let cleanActual = String(actual).trim();
+      let cleanExpected = String(expected).trim();
+
+      if ((cleanActual.startsWith('"') && cleanActual.endsWith('"')) || (cleanActual.startsWith("'") && cleanActual.endsWith("'"))) {
+        cleanActual = cleanActual.slice(1, -1);
       }
-      return String(actual) === String(expected);
+      if ((cleanExpected.startsWith('"') && cleanExpected.endsWith('"')) || (cleanExpected.startsWith("'") && cleanExpected.endsWith("'"))) {
+        cleanExpected = cleanExpected.slice(1, -1);
+      }
+
+      if (!caseSensitive) {
+        return cleanActual.toLowerCase() === cleanExpected.toLowerCase();
+      }
+      return cleanActual === cleanExpected;
     }
+
+    if (outputType === 'char') {
+      let cleanActual = String(actual).trim();
+      let cleanExpected = String(expected).trim();
+
+      if ((cleanActual.startsWith('"') && cleanActual.endsWith('"')) || (cleanActual.startsWith("'") && cleanActual.endsWith("'"))) {
+        cleanActual = cleanActual.slice(1, -1);
+      }
+      if ((cleanExpected.startsWith('"') && cleanExpected.endsWith('"')) || (cleanExpected.startsWith("'") && cleanExpected.endsWith("'"))) {
+        cleanExpected = cleanExpected.slice(1, -1);
+      }
+      return cleanActual === cleanExpected;
+    }
+
     if (outputType === 'int') {
       return Number(actual) === Number(expected);
     }
