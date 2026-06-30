@@ -286,7 +286,7 @@ return result;
         solution_code = code; // SQL just runs as is
       } else {
         const config = getLanguageConfig(language);
-        const wrapper = config.wrapper;
+        let wrapper = config.wrapper;
         //  TEST_CODE_FOR_CPP = `#include<bits/stdc++.h>
         
         // using namespace std;
@@ -299,6 +299,9 @@ return result;
         
         // 	return 0;
         // }`;
+        if (config.buildWrapper) {
+          wrapper = config.buildWrapper(wrapper, question);
+        }
         solution_code = wrapper.replace('SOLUTION_METHOD', code);
       }
 

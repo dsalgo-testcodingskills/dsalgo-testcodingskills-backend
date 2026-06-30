@@ -30,6 +30,8 @@ import {
   SCALA_SOLUTION_TEMPLATE,
   TEST_CODE_FOR_ELIXIR,
   ELIXIR_SOLUTION_TEMPLATE,
+  TEST_CODE_FOR_ERLANG,
+  ERLANG_SOLUTION_TEMPLATE,
 } from './constants';
 
 export interface LanguageConfig {
@@ -46,18 +48,8 @@ export interface LanguageConfig {
   outputType: string,
   testCaseOutput?: any
 ) => string;
+  buildWrapper?: (wrapper: string, question: any) => string;
 }
-
-const defaultFormatArgument = (type: string, value: any) => {
-  if (type === 'boolean' && typeof value === 'boolean') {
-    return JSON.stringify(value);
-  }
-  return JSON.stringify(value);
-};
-
-const defaultFormatParameters = (params: { type: string; paramName: string }[]) => {
-  return params.map(p => p.paramName).join(', ');
-};
 
 export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
   cpp: {
@@ -999,6 +991,127 @@ print "<logsOutputSeprator>#{value}"
         IO.write("<logsOutputSeprator>")
         IO.write(to_string(value))
         `;
+    }
+  },
+  erlang: {
+    wrapper: TEST_CODE_FOR_ERLANG,
+    template: ERLANG_SOLUTION_TEMPLATE,
+    buildWrapper: (wrapper, question) => {
+      return wrapper.replace("ARITY", String(question.inputType.length));
+    },
+
+    dataTypeMap: {},
+
+    formatArgument: (type, val) => {
+
+      if (type === "boolean") {
+        return val ? "true" : "false";
+      }
+
+      if (type === "int" || type === "float") {
+        return String(val);
+      }
+
+      if (type === "string") {
+        return JSON.stringify(val);
+      }
+
+      if (type === "char") {
+        return JSON.stringify(val);
+      }
+
+      if (type === "array_int") {
+        return `[${val.join(",")}]`;
+      }
+
+      if (type === "array_char") {
+        return `[${val.map(c => JSON.stringify(c)).join(",")}]`;
+      }
+
+      if (type === "2d_array_int") {
+        return `[${val
+          .map(row => `[${row.join(",")}]`)
+          .join(",")}]`;
+      }
+
+      if (type === "2d_array_char") {
+        return `[${val
+          .map(row => `[${row.map(c => JSON.stringify(c)).join(",")}]`)
+          .join(",")}]`;
+      }
+
+      return JSON.stringify(val);
+    },
+
+    formatParameters: (params) =>
+      params.map(p => p.paramName).join(", "),
+
+    getInvocation: (call, outType) => {
+
+      if (outType === "array_int") {
+        return `
+Arr = ${call},
+io:format("<logsOutputSeprator>"),
+lists:foreach(fun(E) ->
+    io:format("~p ", [E])
+end, Arr)
+`;
+      }
+
+      if (outType === "array_char") {
+        return `
+Arr = ${call},
+io:format("<logsOutputSeprator>"),
+lists:foreach(fun(E) ->
+    io:format("~c", [E])
+end, Arr)
+`;
+      }
+
+      if (outType === "2d_array_int") {
+        return `
+Matrix = ${call},
+io:format("<logsOutputSeprator>"),
+lists:foreach(fun(Row) ->
+    lists:foreach(fun(E) ->
+        io:format("~p ", [E])
+    end, Row),
+    io:format("~n")
+end, Matrix)
+`;
+      }
+
+      if (outType === "2d_array_char") {
+        return `
+Matrix = ${call},
+io:format("<logsOutputSeprator>"),
+lists:foreach(fun(Row) ->
+    lists:foreach(fun(E) ->
+        io:format("~c", [E])
+    end, Row),
+    io:format("~n")
+end, Matrix)
+`;
+      }
+
+      if (outType === "char") {
+        return `
+Value = ${call},
+io:format("<logsOutputSeprator>~c",[Value])
+`;
+      }
+
+      if (outType === "string") {
+        return `
+Value = ${call},
+io:format("<logsOutputSeprator>~s",[Value])
+`;
+      }
+
+      return `
+Value = ${call},
+io:format("<logsOutputSeprator>~p",[Value])
+`;
     }
   }
 

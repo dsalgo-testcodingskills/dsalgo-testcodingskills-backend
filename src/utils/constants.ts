@@ -128,6 +128,15 @@ SOLUTION_METHOD
 INVOCATION
 `;
 
+export const TEST_CODE_FOR_ERLANG = `
+-module(main).
+-export([solution/ARITY, main/1]).
+
+SOLUTION_METHOD
+
+main(_Args) ->
+    INVOCATION.
+`;
 export const C_SOLUTION_TEMPLATE = `return_type solution(parameters) {
     // Write your code only in the provided function
     // Don't write any code outside this function
@@ -219,6 +228,11 @@ defmodule Solution do
   end
 end
 `;
+export const ERLANG_SOLUTION_TEMPLATE = `
+solution(parameters) ->
+    % Write your code only in the provided function
+    % Don't write any code outside this function.
+`;
 export enum QUESTION_TYPE {
   DSA = 'dsa',
   DATABASE = 'database',
@@ -239,6 +253,9 @@ export enum TEST_LANGUAGES {
   SWIFT = 'swift',
   KOTLIN = 'kotlin',
   SQL = 'sql',
+  SCALA = 'scala',
+  ELIXIR = 'elixir',
+  ERLANG = 'erlang',
 }
 
 export interface QUESTION_INPUT_TYPE {
@@ -292,6 +309,7 @@ export const JUDGE0_LANGUAGE_IDS: Record<string, number> = {
   sql: 82, // SQL (SQLite 3.27.2)
   scala: 81, // Scala (2.13.2)
   elixir: 57, // Elixir (1.9.4)
+  erlang: 58, // Erlang (OTP 22.2)
 };
 
 // Complete mapping of all Judge0 languages by category
@@ -313,6 +331,7 @@ export const LANGUAGE_CATEGORIES = {
     { id: 68, name: 'PHP (7.4.1)', internal: 'php' },
     { id: 81, name: 'Scala (2.13.2)', internal: 'scala' },
     { id: 57, name: 'Elixir (1.9.4)', internal: 'elixir' },
+    { id: 58, name: 'Erlang (OTP 22.2)', internal: 'erlang' },
   ],
   [QUESTION_TYPE.DATABASE]: [
     { id: 82, name: 'SQL (SQLite 3.27.2)', internal: 'sql' },
