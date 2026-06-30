@@ -28,6 +28,8 @@ import {
   RUST_SOLUTION_TEMPLATE,
   TEST_CODE_FOR_SCALA,
   SCALA_SOLUTION_TEMPLATE,
+  TEST_CODE_FOR_ELIXIR,
+  ELIXIR_SOLUTION_TEMPLATE,
 } from './constants';
 
 export interface LanguageConfig {
@@ -929,7 +931,77 @@ print "<logsOutputSeprator>#{value}"
       print(value)
       `;
     }
+  },
+  elixir: {
+    wrapper: TEST_CODE_FOR_ELIXIR,
+    template: ELIXIR_SOLUTION_TEMPLATE,
+
+    dataTypeMap: {},
+
+    formatArgument: (type, val) => {
+
+      if (type === "boolean") {
+        return val ? "true" : "false";
+      }
+
+      if (type === "string") {
+        return JSON.stringify(val);
+      }
+
+      if (type === "char") {
+        return `"${val}"`;
+      }
+
+      if (type === "array_int") {
+        return `[${val.join(", ")}]`;
+      }
+
+      if (type === "array_char") {
+        return `[${val.map(ch => `"${ch}"`).join(", ")}]`;
+      }
+
+      if (type === "2d_array_int") {
+        return `[${val
+          .map(row => `[${row.join(", ")}]`)
+          .join(", ")}]`;
+      }
+
+      if (type === "2d_array_char") {
+        return `[${val
+          .map(row => `[${row.map(ch => `"${ch}"`).join(", ")}]`)
+          .join(", ")}]`;
+      }
+
+      return JSON.stringify(val);
+    },
+
+    formatParameters: (params) =>
+      params.map(p => p.paramName).join(", "),
+
+    getInvocation: (call, outType) => {
+      const elixirCall = call.replace(/^solution\(/, 'Solution.solution(');
+
+      if (
+        outType === "array_int" || 
+        outType === "array_char" || 
+        outType === "2d_array_int" || 
+        outType === "2d_array_char"
+      ) {
+        return `
+          arr = ${elixirCall}
+          IO.write("<logsOutputSeprator>")
+          IO.write(inspect(arr, limit: :infinity, charlists: :as_lists))
+          `;
+      }
+
+      return `
+        value = ${elixirCall}
+        IO.write("<logsOutputSeprator>")
+        IO.write(to_string(value))
+        `;
+    }
   }
+
 };
 
 export const getLanguageConfig = (language: string): LanguageConfig => {

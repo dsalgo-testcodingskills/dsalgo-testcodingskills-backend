@@ -122,6 +122,12 @@ export const TEST_CODE_FOR_SCALA = `object Main {
   }
 }`;
 
+export const TEST_CODE_FOR_ELIXIR = `
+SOLUTION_METHOD
+
+INVOCATION
+`;
+
 export const C_SOLUTION_TEMPLATE = `return_type solution(parameters) {
     // Write your code only in the provided function
     // Don't write any code outside this function
@@ -205,6 +211,14 @@ def solution(parameters): return_type = {
   // Don't write any code outside this function
 }
 `;
+export const ELIXIR_SOLUTION_TEMPLATE = `
+defmodule Solution do
+  def solution(parameters) do
+    # Write your code only in the provided function
+    # Don't write any code outside this function
+  end
+end
+`;
 export enum QUESTION_TYPE {
   DSA = 'dsa',
   DATABASE = 'database',
@@ -277,6 +291,7 @@ export const JUDGE0_LANGUAGE_IDS: Record<string, number> = {
   kotlin: 78, // Kotlin (1.3.70)
   sql: 82, // SQL (SQLite 3.27.2)
   scala: 81, // Scala (2.13.2)
+  elixir: 57, // Elixir (1.9.4)
 };
 
 // Complete mapping of all Judge0 languages by category
@@ -297,6 +312,7 @@ export const LANGUAGE_CATEGORIES = {
     { id: 50, name: 'C (GCC 9.2.0)', internal: 'c' },
     { id: 68, name: 'PHP (7.4.1)', internal: 'php' },
     { id: 81, name: 'Scala (2.13.2)', internal: 'scala' },
+    { id: 57, name: 'Elixir (1.9.4)', internal: 'elixir' },
   ],
   [QUESTION_TYPE.DATABASE]: [
     { id: 82, name: 'SQL (SQLite 3.27.2)', internal: 'sql' },
