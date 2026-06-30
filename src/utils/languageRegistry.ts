@@ -25,6 +25,7 @@ import {
   C_SOLUTION_TEMPLATE,
   QUESTION_INPUT_TYPE,
   PHP_SOLUTION_TEMPLATE,
+  RUST_SOLUTION_TEMPLATE,
 } from './constants';
 
 export interface LanguageConfig {
@@ -73,6 +74,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       if (type === '2d_array_char') return `vector<vector<char>>{${val.map((subArr: any) => `{${JSON.stringify(subArr).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`).join(',')}}`;
       if (type === 'array_int') return `vector<int>{${val.join(',')}}`;
       if (type === 'array_char') return `vector<char>{${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
+      if (type === 'char') return `'${val}'`;
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('cpp', p.type)} ${p.paramName}`).join(', '),
@@ -108,6 +110,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       if (type === '2d_array_char') return `new char[][] {${val.map((arr: any) => `new char[] {${JSON.stringify(arr).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`).join(',')}}`;
       if (type === 'array_int') return `new int[] {${val.join(',')}}`;
       if (type === 'array_char') return `new char[] {${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
+      if (type === 'char') return `'${val}'`;
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('java', p.type)} ${p.paramName}`).join(', '),
@@ -195,6 +198,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       if (type === '2d_array_char') return `[][]rune{${val.map((row: any) => `[]rune{${JSON.stringify(row).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`).join(',')}}`;
       if (type === 'array_int') return `[]int{${val.join(',')}}`;
       if (type === 'array_char') return `[]rune{${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
+      if (type === 'char') return `'${val}'`;
       return `${JSON.stringify(val)}`;
     },
     formatParameters: (params, getDT) => params.map(p => `${p.paramName} ${getDT('go', p.type)}`).join(', '),
@@ -230,6 +234,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       if (type === '2d_array_char') return `new char[][] {${val.map((arr: any) => `new char[] {${JSON.stringify(arr).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`).join(',')}}`;
       if (type === 'array_int') return `new int[] {${val.join(',')}}`;
       if (type === 'array_char') return `new char[] {${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
+      if (type === 'char') return `'${val}'`;
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('csharp', p.type)} ${p.paramName}`).join(', '),
@@ -248,7 +253,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
   },
   rust: {
     wrapper: TEST_CODE_FOR_RUST,
-    template: `pub fn solution(parameters) -> return_type {\n    \n}`,
+    template: RUST_SOLUTION_TEMPLATE,
     dataTypeMap: {
       '2d_array_int': 'Vec<Vec<i32>>',
       'array_int': 'Vec<i32>',
@@ -262,6 +267,9 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
     },
     formatArgument: (type, val) => {
       switch (type) {
+        case 'char':
+          return `'${val}'`;
+
         case 'int':
           return String(val);
 
@@ -430,6 +438,10 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
         return JSON.stringify(val);
       }
 
+      if (type === 'char') {
+        return `'${val}'`;
+      }
+
       return JSON.stringify(val);
     },
 
@@ -538,7 +550,7 @@ print "<logsOutputSeprator>#{value}"
           ).join(',')}]`;
         }
 
-        if (type === 'string') {
+        if (type === 'string' || type === 'char') {
           return `"${val}"`;
         }
 

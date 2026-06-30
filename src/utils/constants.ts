@@ -79,7 +79,7 @@ function main() {
 }
 main();`;
 
-export const TEST_CODE_FOR_RUST = `
+export const TEST_CODE_FOR_RUST = `#![allow(unused_imports)]
 use std::collections::*;
 SOLUTION_METHOD
 fn main() {
@@ -187,11 +187,11 @@ export const PHP_SOLUTION_TEMPLATE = `function solution(parameters): return_type
     // Don't write any code outside this function
 }`;
 
-// export const RUST_SOLUTION_TEMPLATE = `fn solution(parameters) -> return_type {
-//     // Write your code only in the provided function
-//     // Don't write any code outside this function
-//     // Function will be executed with inputs from test cases
-// }`;
+export const RUST_SOLUTION_TEMPLATE = `fn solution(parameters) -> return_type {
+    // Write your code only in the provided function
+    // Don't write any code outside this function
+    // Function will be executed with inputs from test cases
+}`;
 
 export enum QUESTION_TYPE {
   DSA = 'dsa',
@@ -264,85 +264,13 @@ export const JUDGE0_LANGUAGE_IDS: Record<string, number> = {
   swift: 83, // Swift (5.2.3)
   kotlin: 78, // Kotlin (1.3.70)
   sql: 82, // SQL (SQLite 3.27.2)
-  'C (GCC 7.4.0)': 48,
-  'C (GCC 9.2.0)': 50,
-  'C++ (GCC 7.4.0)': 52,
-  'C++ (GCC 9.2.0)': 54,
-  'Java (OpenJDK 13.0.1)': 62,
-  'JavaScript (Node.js 12.14.0)': 63,
-  'Python (3.8.1)': 71,
-  'TypeScript (3.7.4)': 74,
-  'Go (1.13.5)': 60,
-  'C# (Mono 6.6.0.161)': 51,
-  'Kotlin (1.3.70)': 78,
-  'Ruby (2.7.0)': 72,
-  'Swift (5.2.3)': 83,
-  'Rust (1.40.0)': 73,
-  'Dart (2.19.2)': 90,
-  'Scala (2.13.2)': 81,
-  'D (DMD 2.089.1)': 56,
-  'Elixir (1.9.4)': 57,
-  'Erlang (OTP 22.2)': 58,
-  'F# (.NET Core SDK 3.1.202)': 87,
-  'Haskell (GHC 8.8.1)': 61,
-  'Clojure (1.10.1)': 86,
-  'Groovy (3.0.3)': 88,
-  'OCaml (4.09.0)': 65,
-  'Pascal (FPC 3.0.4)': 67,
-  'Objective-C (Clang 7.0.1)': 79,
-  'Basic (FBC 1.07.1)': 47,
-  'Fortran (GFortran 9.2.0)': 59,
-  'SQL (SQLite 3.27.2)': 82,
-  'Bash (5.0.0)': 46,
-  'Perl (5.28.1)': 85,
-  'Lua (5.3.5)': 64,
-  'PHP (7.4.1)': 68,
-  'R (4.0.0)': 80,
-  'Octave (5.1.0)': 66,
-  'Prolog (GNU Prolog 1.4.5)': 69,
-  'Plain Text': 43,
-  'Executable': 44,
-  'Multi-file program': 89,
-  'Assembly (NASM 2.14.02)': 45,
-  'COBOL (GnuCOBOL 2.2)': 77,
-  'Visual Basic.Net (vbnc 0.0.0.5943)': 84,
-  'JavaFX (JDK 17.0.6, OpenJFX 22.0.2)': 96,
+
 };
 
 // Complete mapping of all Judge0 languages by category
 export const LANGUAGE_CATEGORIES = {
-  // [QUESTION_TYPE.DSA]: [
-  //   { id: 48, name: 'C (GCC 7.4.0)', internal: 'c' },
-  //   { id: 50, name: 'C (GCC 9.2.0)', internal: 'c' },
-  //   { id: 52, name: 'C++ (GCC 7.4.0)', internal: 'cpp' },
-  //   { id: 54, name: 'C++ (GCC 9.2.0)', internal: 'cpp' },
-  //   { id: 62, name: 'Java (OpenJDK 13.0.1)', internal: 'java' },
-  //   { id: 63, name: 'JavaScript (Node.js 12.14.0)', internal: 'javascript' },
-  //   { id: 71, name: 'Python (3.8.1)', internal: 'python' },
-  //   { id: 74, name: 'TypeScript (3.7.4)', internal: 'typescript' },
-  //   { id: 60, name: 'Go (1.13.5)', internal: 'go' },
-  //   { id: 51, name: 'C# (Mono 6.6.0.161)', internal: 'csharp' },
-  //   { id: 78, name: 'Kotlin (1.3.70)', internal: 'kotlin' },
-  //   { id: 72, name: 'Ruby (2.7.0)', internal: 'ruby' },
-  //   { id: 83, name: 'Swift (5.2.3)', internal: 'swift' },
-  //   { id: 73, name: 'Rust (1.40.0)', internal: 'rust' },
-  //   { id: 90, name: 'Dart (2.19.2)', internal: 'dart' },
-  //   { id: 81, name: 'Scala (2.13.2)', internal: 'scala' },
-  //   { id: 56, name: 'D (DMD 2.089.1)', internal: 'd' },
-  //   { id: 57, name: 'Elixir (1.9.4)', internal: 'elixir' },
-  //   { id: 58, name: 'Erlang (OTP 22.2)', internal: 'erlang' },
-  //   { id: 87, name: 'F# (.NET Core SDK 3.1.202)', internal: 'fsharp' },
-  //   { id: 61, name: 'Haskell (GHC 8.8.1)', internal: 'haskell' },
-  //   { id: 86, name: 'Clojure (1.10.1)', internal: 'clojure' },
-  //   { id: 88, name: 'Groovy (3.0.3)', internal: 'groovy' },
-  //   { id: 65, name: 'OCaml (4.09.0)', internal: 'ocaml' },
-  //   { id: 67, name: 'Pascal (FPC 3.0.4)', internal: 'pascal' },
-  //   { id: 79, name: 'Objective-C (Clang 7.0.1)', internal: 'objective-c' },
-  //   { id: 47, name: 'Basic (FBC 1.07.1)', internal: 'basic' },
-  //   { id: 59, name: 'Fortran (GFortran 9.2.0)', internal: 'fortran' },
-  // ],
+
     [QUESTION_TYPE.DSA]: [
-    { id: 52, name: 'C++ (GCC 7.4.0)', internal: 'cpp' },
     { id: 54, name: 'C++ (GCC 9.2.0)', internal: 'cpp' },
     { id: 62, name: 'Java (OpenJDK 13.0.1)', internal: 'java' },
     { id: 63, name: 'JavaScript (Node.js 12.14.0)', internal: 'javascript' },
@@ -355,7 +283,6 @@ export const LANGUAGE_CATEGORIES = {
     { id: 72, name: 'Ruby (2.7.0)', internal: 'ruby' },
     { id: 83, name: 'Swift (5.2.3)', internal: 'swift' },
     { id: 50, name: 'C (GCC 9.2.0)', internal: 'c' },
-    { id:48, name: 'C (GCC 7.4.0)', internal: 'c' },
     { id: 68, name: 'PHP (7.4.1)', internal: 'php' },
   ],
   [QUESTION_TYPE.DATABASE]: [
