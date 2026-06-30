@@ -449,6 +449,17 @@ export const validateTestCase = (dataType, data) => {
       case 'string':
         isValid = typeof data === 'string';
         break;
+      case 'char': {
+        if (typeof data !== 'string') {
+          return false;
+        }
+        let val = data.trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        isValid = val.length === 1;
+        break;
+      }
       case 'float':
         isValid = typeof data === 'number' || (typeof data === 'string' && !isNaN(Number(data)));
         break;
@@ -483,7 +494,7 @@ export const checkTestCases = (body) => {
       inputValues = inputValues.map((val, index) => {
         if (typeof val === 'string' && val.trim() !== '') {
           const expectedType = body.inputType[index]?.type;
-          if (expectedType === 'string' || expectedType === 'float' || expectedType === 'int') {
+          if (expectedType === 'string' || expectedType === 'char' || expectedType === 'float' || expectedType === 'int') {
             return val;
           }
           try {
@@ -498,7 +509,7 @@ export const checkTestCases = (body) => {
       let outputValue = body.testCases[i].output;
       if (typeof outputValue === 'string' && outputValue.trim() !== '') {
         const expectedOutputType = body.outputType;
-        if (expectedOutputType !== 'string' && expectedOutputType !== 'float' && expectedOutputType !== 'int') {
+        if (expectedOutputType !== 'string' && expectedOutputType !== 'char' && expectedOutputType !== 'float' && expectedOutputType !== 'int') {
           try {
             outputValue = JSON.parse(outputValue);
           } catch (e) {
@@ -534,11 +545,24 @@ export const checkTestCases = (body) => {
         if ((type === 'int' || type === 'float') && typeof val === 'string' && val.trim() !== '') {
           return Number(val);
         }
+        if (type === 'char' && typeof val === 'string') {
+          let cleanVal = val.trim();
+          if ((cleanVal.startsWith('"') && cleanVal.endsWith('"')) || (cleanVal.startsWith("'") && cleanVal.endsWith("'"))) {
+            cleanVal = cleanVal.slice(1, -1);
+          }
+          return cleanVal;
+        }
         return val;
       });
 
       if ((body.outputType === 'int' || body.outputType === 'float') && typeof outputValue === 'string' && outputValue.trim() !== '') {
         body.testCases[i].output = Number(outputValue);
+      } else if (body.outputType === 'char' && typeof outputValue === 'string') {
+        let cleanOut = outputValue.trim();
+        if ((cleanOut.startsWith('"') && cleanOut.endsWith('"')) || (cleanOut.startsWith("'") && cleanOut.endsWith("'"))) {
+          cleanOut = cleanOut.slice(1, -1);
+        }
+        body.testCases[i].output = cleanOut;
       } else {
         body.testCases[i].output = outputValue;
       }

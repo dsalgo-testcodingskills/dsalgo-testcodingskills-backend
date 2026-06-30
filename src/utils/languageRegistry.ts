@@ -65,6 +65,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       'string': 'string',
       'float': 'float',
       'int': 'int',
+      char: 'char',
     },
     formatArgument: (type, val) => {
       if (type === '2d_array_int') return `vector<vector<int>>{${val.map((subArr: any) => `{${subArr.join(',')}}`).join(',')}}`;
@@ -77,6 +78,12 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
     getInvocation: (call, outType, getDT) => {
       if (outType === 'array_int' || outType === 'array_char') {
         return `${getDT('cpp', outType)} arr = ${call}; cout<<"<logsOutputSeprator>";for(int i=0;i<arr.size();i++)cout<<arr[i]<<" ";`;
+      }
+      if (outType === 'char') {
+        return `
+        char value = ${call};
+        cout<<"<logsOutputSeprator>"<<value;
+        `;
       }
       return `${getDT('cpp', outType)} value = ${call}; cout<<"<logsOutputSeprator>"<<value;`;
     }
@@ -93,6 +100,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       'float': 'float',
       'int': 'int',
       'boolean': 'boolean',
+      char: 'char',
     },
     formatArgument: (type, val) => {
       if (type === '2d_array_int') return `new int[][] {${val.map((arr: any) => `{${arr.join(',')}}`).join(',')}}`;
@@ -105,6 +113,12 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
     getInvocation: (call, outType, getDT) => {
       if (outType === 'array_int' || outType === 'array_char') {
         return `${getDT('java', outType)} arr = ${call}; System.out.print("<logsOutputSeprator>");for(int i=0;i<arr.length;i++)System.out.print(arr[i]+" ");`;
+      }
+      if (outType === 'char') {
+        return `
+        char value = ${call};
+        System.out.print("<logsOutputSeprator>"+value);
+        `;
       }
       return `${getDT('java', outType)} value = ${call}; System.out.print("<logsOutputSeprator>"+value);`;
     }
@@ -150,6 +164,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       'string': 'string',
       'float': 'number',
       'int': 'number',
+      'char': 'string',
     },
     formatArgument: (type, val) => JSON.stringify(val),
     formatParameters: (params, getDT) => params.map(p => `${p.paramName}: ${getDT('typescript', p.type)}`).join(', '),
@@ -172,6 +187,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       'string': 'string',
       'float': 'float64',
       'int': 'int',
+      'char': 'rune',
     },
     formatArgument: (type, val) => {
       if (type === '2d_array_int') return `[][]int{${val.map((row: any) => `{${row.join(',')}}`).join(',')}}`;
@@ -184,6 +200,12 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
     getInvocation: (call, outType) => {
       if (outType === 'array_int' || outType === 'array_char') {
         return `arr := ${call}; fmt.Print("<logsOutputSeprator>"); for i := 0; i < len(arr); i++ { fmt.Print(arr[i], " ") }`;
+      }
+      if (outType === 'char') {
+        return `
+        value := ${call}
+        fmt.Printf("<logsOutputSeprator>%c", value)
+        `;
       }
       return `value := ${call}; fmt.Printf("<logsOutputSeprator>%v\\n", value)`;
     }
@@ -200,6 +222,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       'string': 'string',
       'float': 'float',
       'int': 'int',
+      'char': 'char',
     },
     formatArgument: (type, val) => {
       if (type === '2d_array_int') return `new int[][] {${val.map((arr: any) => `new int[] {${arr.join(',')}}`).join(',')}}`;
@@ -212,6 +235,12 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
     getInvocation: (call, outType, getDT) => {
       if (outType === 'array_int' || outType === 'array_char') {
         return `${getDT('csharp', outType)} arr = ${call}; Console.Write("<logsOutputSeprator>");for(int i=0;i<arr.Length;i++)Console.Write(arr[i]+" ");`;
+      }
+      if (outType === 'char') {
+        return `
+        char value = ${call};
+        Console.Write("<logsOutputSeprator>"+value);
+        `;
       }
       return `${getDT('csharp', outType)} value = ${call}; Console.Write("<logsOutputSeprator>"+value);`;
     }
@@ -228,6 +257,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       'string': 'String',
       'float': 'f64',
       'int': 'i32',
+      'char': 'char',
     },
     formatArgument: (type, val) => {
       switch (type) {
@@ -297,6 +327,7 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       'float': 'Double',
       'int': 'Int',
       'boolean': 'Boolean',
+      'char': 'Char',
     },
 
     formatArgument: (type, val) => {
@@ -413,6 +444,7 @@ print "<logsOutputSeprator>#{value}"
         'array_char': '[Character]',
         '2d_array_int': '[[Int]]',
         '2d_array_char': '[[Character]]',
+        'char': 'Character',
       },
 
       formatArgument: (type, val) => {
@@ -460,7 +492,12 @@ print "<logsOutputSeprator>#{value}"
         }
         `;
                 }
-
+        if (outType === 'char') {
+          return `
+          let value = ${call}
+          print("<logsOutputSeprator>\\(value)", terminator:"")
+          `;  
+        }
                 return `
         let value = ${call}
         print("<logsOutputSeprator>\\(value)", terminator: "")
@@ -481,14 +518,17 @@ print "<logsOutputSeprator>#{value}"
       array_int: 'int*',
       array_char: 'char*',
       '2d_array_int': 'int**',
-      '2d_array_char': 'char**'
+      '2d_array_char': 'char**',
+      char: 'char',
     },
     formatArgument: (type, val) => {
 
       if (type === 'array_int') {
         return `(int[]){${val.join(',')}}`;
       }
-
+      if (type === 'char') {
+        return `'${val}'`;
+      }
       if (type === 'string') {
         return `"${val}"`;
       }
@@ -502,33 +542,33 @@ print "<logsOutputSeprator>#{value}"
       return JSON.stringify(val);
     },
 
-formatParameters: (params, getDT) => {
-  const result: string[] = [];
+    formatParameters: (params, getDT) => {
+      const result: string[] = [];
 
-  for (const p of params) {
-    result.push(`${getDT('c', p.type)} ${p.paramName}`);
+      for (const p of params) {
+        result.push(`${getDT('c', p.type)} ${p.paramName}`);
 
-    if (p.type === 'array_int') {
-      result.push(`int ${p.paramName}Size`);
-    }
+        if (p.type === 'array_int') {
+          result.push(`int ${p.paramName}Size`);
+        }
 
-    if (p.type === 'array_char') {
-      result.push(`int ${p.paramName}Size`);
-    }
+        if (p.type === 'array_char') {
+          result.push(`int ${p.paramName}Size`);
+        }
 
-    if (p.type === '2d_array_int') {
-      result.push(`int ${p.paramName}RowSize`);
-      result.push(`int ${p.paramName}ColSize`);
-    }
+        if (p.type === '2d_array_int') {
+          result.push(`int ${p.paramName}RowSize`);
+          result.push(`int ${p.paramName}ColSize`);
+        }
 
-    if (p.type === '2d_array_char') {
-      result.push(`int ${p.paramName}RowSize`);
-      result.push(`int ${p.paramName}ColSize`);
-    }
-  }
+        if (p.type === '2d_array_char') {
+          result.push(`int ${p.paramName}RowSize`);
+          result.push(`int ${p.paramName}ColSize`);
+        }
+      }
 
-  return result.join(', ');
-},
+      return result.join(', ');
+    },
     getInvocation: (call, outType) => {
 
               if (outType === 'array_int') {
@@ -551,130 +591,146 @@ formatParameters: (params, getDT) => {
         printf("<logsOutputSeprator>%s", value ? "true" : "false");
         `;
               }
-
+              if (outType === 'char') {
+                return `
+        char value = ${call};
+        printf("<logsOutputSeprator>%c", value);
+        `;
+              }
               return `
         int value = ${call};
         printf("<logsOutputSeprator>%d", value);
         `;
     },
     buildInvocation: (inputTypes, testCaseInput, outputType) => {
-  let declarations = [];
-  let argumentsList = [];
+      let declarations = [];
+      let argumentsList = [];
 
-  for (let i = 0; i < inputTypes.length; i++) {
-    const param = inputTypes[i];
-    const value = testCaseInput[i];
+      for (let i = 0; i < inputTypes.length; i++) {
+        const param = inputTypes[i];
+        const value = testCaseInput[i];
 
-    if (param.type === 'array_int') {
-      declarations.push(
-        `int ${param.paramName}[] = {${value.join(',')}};`
-      );
+        if (param.type === 'array_int') {
+          declarations.push(
+            `int ${param.paramName}[] = {${value.join(',')}};`
+          );
 
-      argumentsList.push(param.paramName);
-      argumentsList.push(`${value.length}`);
-    } else if (param.type === 'array_char') {
-      declarations.push(
-        `char ${param.paramName}[] = {${value.map(ch => `'${ch}'`).join(',')}};`
-      );
-      argumentsList.push(param.paramName);
-      argumentsList.push(`${value.length}`);
-    } else if (param.type === '2d_array_int') {
+          argumentsList.push(param.paramName);
+          argumentsList.push(`${value.length}`);
+        } else if (param.type === 'array_char') {
+          declarations.push(
+            `char ${param.paramName}[] = {${value.map(ch => `'${ch}'`).join(',')}};`
+          );
+          argumentsList.push(param.paramName);
+          argumentsList.push(`${value.length}`);
+        } else if (param.type === '2d_array_int') {
 
-      const rowNames: string[] = [];
+          const rowNames: string[] = [];
 
-      value.forEach((row, index) => {
-        const rowName = `${param.paramName}Row${index}`;
+          value.forEach((row, index) => {
+            const rowName = `${param.paramName}Row${index}`;
 
-        declarations.push(
-          `int ${rowName}[] = {${row.join(',')}};`
-        );
+            declarations.push(
+              `int ${rowName}[] = {${row.join(',')}};`
+            );
 
-        rowNames.push(rowName);
-      });
+            rowNames.push(rowName);
+          });
 
-      declarations.push(
-        `int* ${param.paramName}[] = {${rowNames.join(',')}};`
-      );
+          declarations.push(
+            `int* ${param.paramName}[] = {${rowNames.join(',')}};`
+          );
 
-      argumentsList.push(param.paramName);
-      argumentsList.push(`${value.length}`);
-      argumentsList.push(`${value[0].length}`);
-    } else if (param.type === '2d_array_char') {
+          argumentsList.push(param.paramName);
+          argumentsList.push(`${value.length}`);
+          argumentsList.push(`${value[0].length}`);
+        } else if (param.type === '2d_array_char') {
 
-      const rowNames: string[] = [];
+          const rowNames: string[] = [];
 
-      value.forEach((row, index) => {
-        const rowName = `${param.paramName}Row${index}`;
+          value.forEach((row, index) => {
+            const rowName = `${param.paramName}Row${index}`;
 
-        declarations.push(
-          `char ${rowName}[] = {${row.map(ch => `'${ch}'`).join(',')}};`
-        );
+            declarations.push(
+              `char ${rowName}[] = {${row.map(ch => `'${ch}'`).join(',')}};`
+            );
 
-        rowNames.push(rowName);
-      });
+            rowNames.push(rowName);
+          });
 
-      declarations.push(
-        `char* ${param.paramName}[] = {${rowNames.join(',')}};`
-      );
+          declarations.push(
+            `char* ${param.paramName}[] = {${rowNames.join(',')}};`
+          );
 
-      argumentsList.push(param.paramName);
-      argumentsList.push(`${value.length}`);
-      argumentsList.push(`${value[0].length}`);
-    } else if (param.type === 'string') {
-      argumentsList.push(JSON.stringify(value));
-    } else {
-      argumentsList.push(JSON.stringify(value));
+          argumentsList.push(param.paramName);
+          argumentsList.push(`${value.length}`);
+          argumentsList.push(`${value[0].length}`);
+        } else if (param.type === 'char') {
+          argumentsList.push(`'${value}'`);
+        } else if (param.type === 'string') {
+          argumentsList.push(JSON.stringify(value));
+        } else {
+          argumentsList.push(JSON.stringify(value));
+        }
+      }
+
+      const functionCall = `solution(${argumentsList.join(', ')})`;
+
+      if (outputType === 'int') {
+        return `
+      ${declarations.join('\n')}
+
+      int value = ${functionCall};
+      printf("<logsOutputSeprator>%d", value);
+      `;
+          } else if (outputType === 'float') {
+            return `
+      ${declarations.join('\n')}
+
+      float value = ${functionCall};
+       printf("<logsOutputSeprator>%f", value);
+      `;
+          } else if (outputType === 'boolean') {
+            return `
+      ${declarations.join('\n')}
+
+          bool value = ${functionCall};
+          printf("<logsOutputSeprator>%s", value ? "true" : "false");
+          `;
+              }
+              else if (outputType === 'char') {
+           return `
+        ${declarations.join('\n')}
+
+        char value = ${functionCall};
+        printf("<logsOutputSeprator>%c", value);
+        `;  
+              }
+              else if (outputType === 'string' || outputType === 'array_char') {
+                return `
+          ${declarations.join('\n')}
+
+        char* value = ${functionCall};
+        printf("<logsOutputSeprator>%s", value);
+        `;
+              } else if (outputType === 'array_int') {
+                return `
+        ${declarations.join('\n')}
+
+        int* arr = ${functionCall};
+        printf("<logsOutputSeprator>");
+        // Note: Printing first 100 elements or until some condition. 
+        // Ideally should know the size, but for now just printing.
+        // If it's a fixed size, it should be handled accordingly.
+        `;
+        }
+
+        return `
+        ${declarations.join('\n')}
+
+        ${functionCall};
+        `;
     }
-  }
-
-  const functionCall = `solution(${argumentsList.join(', ')})`;
-
-  if (outputType === 'int') {
-    return `
-${declarations.join('\n')}
-
-int value = ${functionCall};
-printf("<logsOutputSeprator>%d", value);
-`;
-      } else if (outputType === 'float') {
-        return `
-${declarations.join('\n')}
-
-float value = ${functionCall};
-printf("<logsOutputSeprator>%f", value);
-`;
-      } else if (outputType === 'boolean') {
-        return `
-${declarations.join('\n')}
-
-bool value = ${functionCall};
-printf("<logsOutputSeprator>%s", value ? "true" : "false");
-`;
-      } else if (outputType === 'string' || outputType === 'array_char') {
-        return `
-${declarations.join('\n')}
-
-char* value = ${functionCall};
-printf("<logsOutputSeprator>%s", value);
-`;
-      } else if (outputType === 'array_int') {
-        return `
-${declarations.join('\n')}
-
-int* arr = ${functionCall};
-printf("<logsOutputSeprator>");
-// Note: Printing first 100 elements or until some condition. 
-// Ideally should know the size, but for now just printing.
-// If it's a fixed size, it should be handled accordingly.
-`;
-}
-
-return `
-${declarations.join('\n')}
-
-${functionCall};
-`;
-}
   }
 };
 
