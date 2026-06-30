@@ -567,31 +567,19 @@ export const checkTestCases = (body) => {
         if ((type === 'int' || type === 'float') && typeof val === 'string' && val.trim() !== '') {
           return Number(val);
         }
-        if (type === 'char' && typeof val === 'string') {
-          let cleanVal = val.trim();
-          if ((cleanVal.startsWith('"') && cleanVal.endsWith('"')) || (cleanVal.startsWith("'") && cleanVal.endsWith("'"))) {
-            cleanVal = cleanVal.slice(1, -1);
-          }
-          return cleanVal;
+        if ((type === 'string' || type === 'char') && typeof val === 'string') {
+          return stripWrappingQuotes(val);
         }
         if (type === 'array_char' && Array.isArray(val)) {
           return val.map((item) => {
-            const str = String(item).trim();
-            if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
-              return str.slice(1, -1);
-            }
-            return str;
+           return stripWrappingQuotes(String(item));
           });
         }
         if (type === '2d_array_char' && Array.isArray(val)) {
           return val.map((row) => {
             if (Array.isArray(row)) {
               return row.map((item) => {
-                const str = String(item).trim();
-                if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
-                  return str.slice(1, -1);
-                }
-                return str;
+                return stripWrappingQuotes(String(item));
               });
             }
             return row;
@@ -602,12 +590,8 @@ export const checkTestCases = (body) => {
 
       if ((body.outputType === 'int' || body.outputType === 'float') && typeof outputValue === 'string' && outputValue.trim() !== '') {
         body.testCases[i].output = Number(outputValue);
-      } else if (body.outputType === 'char' && typeof outputValue === 'string') {
-        let cleanOut = outputValue.trim();
-        if ((cleanOut.startsWith('"') && cleanOut.endsWith('"')) || (cleanOut.startsWith("'") && cleanOut.endsWith("'"))) {
-          cleanOut = cleanOut.slice(1, -1);
-        }
-        body.testCases[i].output = cleanOut;
+      } else if ((body.outputType === 'string' || body.outputType === 'char') && typeof outputValue === 'string') {
+        body.testCases[i].output = stripWrappingQuotes(outputValue);
       } else if (body.outputType === 'array_char' && Array.isArray(outputValue)) {
         body.testCases[i].output = outputValue.map((item) => {
           const str = String(item).trim();
@@ -673,4 +657,17 @@ export const isSuperAdmin = (request: any): boolean => {
 export const isSubscriptionExpired = (sub) => {
   const currentUnix = Math.floor(Date.now() / 1000);
   return sub.status === 'active' && sub.current_end < currentUnix;
+};
+
+export const stripWrappingQuotes = (value: string) => {
+  const str = value.trim();
+
+  if (
+    (str.startsWith('"') && str.endsWith('"')) ||
+    (str.startsWith("'") && str.endsWith("'"))
+  ) {
+    return str.slice(1, -1);
+  }
+
+  return str;
 };
