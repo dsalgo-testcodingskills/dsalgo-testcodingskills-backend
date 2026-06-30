@@ -181,6 +181,18 @@ export const SWIFT_SOLUTION_TEMPLATE = `func solution(parameters) -> return_type
     // Function will be executed with inputs from test cases
 
 }`;
+
+export const PHP_SOLUTION_TEMPLATE = `function solution(parameters): return_type {
+    // Write your code only in the provided function
+    // Don't write any code outside this function
+}`;
+
+// export const RUST_SOLUTION_TEMPLATE = `fn solution(parameters) -> return_type {
+//     // Write your code only in the provided function
+//     // Don't write any code outside this function
+//     // Function will be executed with inputs from test cases
+// }`;
+
 export enum QUESTION_TYPE {
   DSA = 'dsa',
   DATABASE = 'database',
@@ -344,6 +356,7 @@ export const LANGUAGE_CATEGORIES = {
     { id: 83, name: 'Swift (5.2.3)', internal: 'swift' },
     { id: 50, name: 'C (GCC 9.2.0)', internal: 'c' },
     { id:48, name: 'C (GCC 7.4.0)', internal: 'c' },
+    { id: 68, name: 'PHP (7.4.1)', internal: 'php' },
   ],
   [QUESTION_TYPE.DATABASE]: [
     { id: 82, name: 'SQL (SQLite 3.27.2)', internal: 'sql' },
@@ -352,7 +365,6 @@ export const LANGUAGE_CATEGORIES = {
     { id: 46, name: 'Bash (5.0.0)', internal: 'bash' },
     { id: 85, name: 'Perl (5.28.1)', internal: 'perl' },
     { id: 64, name: 'Lua (5.3.5)', internal: 'lua' },
-    { id: 68, name: 'PHP (7.4.1)', internal: 'php' },
     { id: 80, name: 'R (4.0.0)', internal: 'r' },
     { id: 66, name: 'Octave (5.1.0)', internal: 'octave' },
     { id: 69, name: 'Prolog (GNU Prolog 1.4.5)', internal: 'prolog' },

@@ -24,6 +24,7 @@ import {
   TEST_CODE_FOR_C,
   C_SOLUTION_TEMPLATE,
   QUESTION_INPUT_TYPE,
+  PHP_SOLUTION_TEMPLATE,
 } from './constants';
 
 export interface LanguageConfig {
@@ -301,15 +302,86 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
   },
   php: {
     wrapper: TEST_CODE_FOR_PHP,
-    template: `function solution(parameters) {\n    \n}`,
-    dataTypeMap: {},
-    formatArgument: (type, val) => JSON.stringify(val),
-    formatParameters: (params) => params.map(p => `$${p.paramName}`).join(', '),
+    template: PHP_SOLUTION_TEMPLATE,
+    dataTypeMap: {
+      int: 'int',
+      float: 'float',
+      boolean: 'bool',
+      char: 'string',
+      string: 'string',
+
+      array_int: 'array',
+      array_char: 'array',
+      '2d_array_int': 'array',
+      '2d_array_char': 'array',
+    },
+    formatArgument: (type, val) => {
+      if (type === 'boolean') {
+        return val ? 'true' : 'false';
+      }
+
+      if (type === 'char') {
+        return `'${val}'`;
+      }
+
+      if (type === 'string') {
+        return JSON.stringify(val);
+      }
+
+      if (
+        type === 'array_int' ||
+        type === 'array_char' ||
+        type === '2d_array_int' ||
+        type === '2d_array_char'
+      ) {
+        return JSON.stringify(val);
+      }
+
+      return JSON.stringify(val);
+    },
+    formatParameters: (params, getDT) =>
+      params
+        .map(p => `${getDT('php', p.type)} $${p.paramName}`)
+        .join(', '),
     getInvocation: (call, outType) => {
       if (outType === 'array_int' || outType === 'array_char') {
-        return `$arr = ${call}; echo "<logsOutputSeprator>"; foreach($arr as $el) echo $el . " ";`;
+        return `
+        $arr = ${call};
+        echo "<logsOutputSeprator>";
+        if ($arr !== null) {
+            foreach ($arr as $el) {
+                echo $el . " ";
+            }
+        }
+        `;
       }
-      return `$value = ${call}; echo "<logsOutputSeprator>" . $value;`;
+
+      if (outType === '2d_array_int' || outType === '2d_array_char') {
+        return `
+        $arr = ${call};
+        echo "<logsOutputSeprator>";
+        if ($arr !== null) {
+            foreach ($arr as $row) {
+                foreach ($row as $el) {
+                    echo $el . " ";
+                }
+                echo "\\n";
+            }
+        }
+        `;
+      }
+
+      if (outType === 'boolean') {
+        return `
+        $value = ${call};
+        echo "<logsOutputSeprator>" . ($value ? "true" : "false");
+        `;
+      }
+
+      return `
+        $value = ${call};
+        echo "<logsOutputSeprator>" . $value;
+        `;
     }
   },
   kotlin: {
