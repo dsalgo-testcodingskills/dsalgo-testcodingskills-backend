@@ -75,7 +75,8 @@ export class CompilerService {
       return config.buildInvocation(
         question.inputType,
         question.testCases[testCaseIndex].input,
-        question.outputType
+        question.outputType,
+        question.testCases[testCaseIndex].output
       );
     }
 

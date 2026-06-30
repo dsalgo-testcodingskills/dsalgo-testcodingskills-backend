@@ -35,7 +35,7 @@ export class QuestionsService {
       const config = getLanguageConfig(lang);
 
       if (questionType === QUESTION_TYPE.DSA) {
-        const paramsString = config.formatParameters(body.inputType, getLanguageDataType);
+        const paramsString = config.formatParameters(body.inputType, getLanguageDataType, body.outputType);
         const returnType = getLanguageDataType(lang, body.outputType);
 
         const code = config.template

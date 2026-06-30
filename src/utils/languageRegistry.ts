@@ -35,13 +35,14 @@ export interface LanguageConfig {
   wrapper: string;
   template: string;
   formatArgument: (type: string, value: any) => string;
-  formatParameters: (params: { type: string; paramName: string }[], getDataType: (lang: string, type: string) => string) => string;
+  formatParameters: (params: { type: string; paramName: string }[], getDataType: (lang: string, type: string) => string, outputType?: string) => string;
   getInvocation: (functionCall: string, outputType: string, getDataType: (lang: string, type: string) => string) => string;
   formatInvocationArgument?: (param: { type: string; paramName: string }, value: string) => string;
   buildInvocation?: (
   inputTypes: QUESTION_INPUT_TYPE[],
   testCaseInput: any[],
-  outputType: string
+  outputType: string,
+  testCaseOutput?: any
 ) => string;
 }
 
@@ -628,7 +629,7 @@ print "<logsOutputSeprator>#{value}"
       return JSON.stringify(val);
     },
 
-    formatParameters: (params, getDT) => {
+    formatParameters: (params, getDT, outputType) => {
       const result: string[] = [];
 
       for (const p of params) {
@@ -651,6 +652,13 @@ print "<logsOutputSeprator>#{value}"
           result.push(`int ${p.paramName}RowSize`);
           result.push(`int ${p.paramName}ColSize`);
         }
+      }
+
+      if (outputType === 'array_int' || outputType === 'array_char') {
+        result.push(`int* returnSize`);
+      } else if (outputType === '2d_array_int' || outputType === '2d_array_char') {
+        result.push(`int* returnSize`);
+        result.push(`int** returnColumnSizes`);
       }
 
       return result.join(', ');
@@ -688,7 +696,7 @@ print "<logsOutputSeprator>#{value}"
         printf("<logsOutputSeprator>%d", value);
         `;
     },
-    buildInvocation: (inputTypes, testCaseInput, outputType) => {
+    buildInvocation: (inputTypes, testCaseInput, outputType, testCaseOutput) => {
       let declarations = [];
       let argumentsList = [];
 
@@ -760,6 +768,16 @@ print "<logsOutputSeprator>#{value}"
         }
       }
 
+      if (outputType === 'array_int' || outputType === 'array_char') {
+        declarations.push(`int returnSize;`);
+        argumentsList.push(`&returnSize`);
+      } else if (outputType === '2d_array_int' || outputType === '2d_array_char') {
+        declarations.push(`int returnSize;`);
+        declarations.push(`int* returnColumnSizes;`);
+        argumentsList.push(`&returnSize`);
+        argumentsList.push(`&returnColumnSizes`);
+      }
+
       const functionCall = `solution(${argumentsList.join(', ')})`;
 
       if (outputType === 'int') {
@@ -805,9 +823,11 @@ print "<logsOutputSeprator>#{value}"
 
         int* arr = ${functionCall};
         printf("<logsOutputSeprator>");
-        // Note: Printing first 100 elements or until some condition. 
-        // Ideally should know the size, but for now just printing.
-        // If it's a fixed size, it should be handled accordingly.
+        if (arr != NULL) {
+            for(int i = 0; i < returnSize; i++) {
+                printf("%d ", arr[i]);
+            }
+        }
         `;
         }
 
