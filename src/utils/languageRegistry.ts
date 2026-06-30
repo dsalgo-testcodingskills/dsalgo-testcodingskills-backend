@@ -26,6 +26,8 @@ import {
   QUESTION_INPUT_TYPE,
   PHP_SOLUTION_TEMPLATE,
   RUST_SOLUTION_TEMPLATE,
+  TEST_CODE_FOR_SCALA,
+  SCALA_SOLUTION_TEMPLATE,
 } from './constants';
 
 export interface LanguageConfig {
@@ -814,6 +816,98 @@ print "<logsOutputSeprator>#{value}"
 
         ${functionCall};
         `;
+    }
+  },
+  scala: {
+    wrapper: TEST_CODE_FOR_SCALA,
+    template: SCALA_SOLUTION_TEMPLATE,
+
+    dataTypeMap: {
+      int: "Int",
+      float: "Float",
+      boolean: "Boolean",
+      string: "String",
+      char: "Char",
+
+      array_int: "Array[Int]",
+      array_char: "Array[Char]",
+
+      "2d_array_int": "Array[Array[Int]]",
+      "2d_array_char": "Array[Array[Char]]",
+    },
+
+    formatArgument: (type, val) => {
+
+      if (type === "int" || type === "float") {
+        return String(val);
+      }
+
+      if (type === "boolean") {
+        return val ? "true" : "false";
+      }
+
+      if (type === "string") {
+        return JSON.stringify(val);
+      }
+
+      if (type === "char") {
+        return `'${val}'`;
+      }
+
+      if (type === "array_int") {
+        return `Array(${val.join(",")})`;
+      }
+
+      if (type === "array_char") {
+        return `Array(${val.map(ch => `'${ch}'`).join(",")})`;
+      }
+
+      if (type === "2d_array_int") {
+        return `Array(${val
+          .map(row => `Array(${row.join(",")})`)
+          .join(",")})`;
+      }
+
+      if (type === "2d_array_char") {
+        return `Array(${val
+          .map(row => `Array(${row.map(ch => `'${ch}'`).join(",")})`)
+          .join(",")})`;
+      }
+
+      return JSON.stringify(val);
+    },
+
+    formatParameters: (params, getDT) =>
+      params
+        .map(p => `${p.paramName}: ${getDT("scala", p.type)}`)
+        .join(", "),
+
+    getInvocation: (call, outType) => {
+
+      if (outType === "array_int" || outType === "array_char") {
+        return `
+        val arr = ${call}
+        print("<logsOutputSeprator>")
+        arr.foreach(x => print(s"$x "))
+        `;
+      }
+
+      if (outType === "2d_array_int" || outType === "2d_array_char") {
+        return `
+        val arr = ${call}
+        print("<logsOutputSeprator>")
+        arr.foreach(row => {
+          row.foreach(x => print(s"$x "))
+          println()
+        })
+        `;
+      }
+
+      return `
+      val value = ${call}
+      print("<logsOutputSeprator>")
+      print(value)
+      `;
     }
   }
 };

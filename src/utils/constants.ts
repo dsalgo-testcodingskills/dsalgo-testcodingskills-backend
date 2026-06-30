@@ -114,6 +114,13 @@ int main() {
     INVOCATION
     return 0;
 }`;
+export const TEST_CODE_FOR_SCALA = `object Main {
+  SOLUTION_METHOD
+
+  def main(args: Array[String]): Unit = {
+    INVOCATION
+  }
+}`;
 
 export const C_SOLUTION_TEMPLATE = `return_type solution(parameters) {
     // Write your code only in the provided function
@@ -192,7 +199,12 @@ export const RUST_SOLUTION_TEMPLATE = `fn solution(parameters) -> return_type {
     // Don't write any code outside this function
     // Function will be executed with inputs from test cases
 }`;
-
+export const SCALA_SOLUTION_TEMPLATE = `
+def solution(parameters): return_type = {
+  // Write your code only in the provided function
+  // Don't write any code outside this function
+}
+`;
 export enum QUESTION_TYPE {
   DSA = 'dsa',
   DATABASE = 'database',
@@ -264,7 +276,7 @@ export const JUDGE0_LANGUAGE_IDS: Record<string, number> = {
   swift: 83, // Swift (5.2.3)
   kotlin: 78, // Kotlin (1.3.70)
   sql: 82, // SQL (SQLite 3.27.2)
-
+  scala: 81, // Scala (2.13.2)
 };
 
 // Complete mapping of all Judge0 languages by category
@@ -284,6 +296,7 @@ export const LANGUAGE_CATEGORIES = {
     { id: 83, name: 'Swift (5.2.3)', internal: 'swift' },
     { id: 50, name: 'C (GCC 9.2.0)', internal: 'c' },
     { id: 68, name: 'PHP (7.4.1)', internal: 'php' },
+    { id: 81, name: 'Scala (2.13.2)', internal: 'scala' },
   ],
   [QUESTION_TYPE.DATABASE]: [
     { id: 82, name: 'SQL (SQLite 3.27.2)', internal: 'sql' },
