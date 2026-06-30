@@ -312,6 +312,16 @@ export const JUDGE0_LANGUAGE_IDS: Record<string, number> = {
   erlang: 58, // Erlang (OTP 22.2)
 };
 
+// higher minimum CPU limit for slow startup language
+export const JUDGE0_LANGUAGE_MIN_CPU_TIME: Record<string, number> = {
+  java: 5,
+  scala: 5,
+  kotlin: 5,
+  csharp: 5,
+  elixir: 5,
+  erlang: 5,
+};
+
 // Complete mapping of all Judge0 languages by category
 export const LANGUAGE_CATEGORIES = {
 

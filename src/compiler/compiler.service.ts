@@ -7,20 +7,9 @@ import { QuestionsService } from 'src/questions/question.service';
 import { QuestionDocument } from '../questions/SCHEMA/question.schema';
 import { exec } from 'child_process';
 import {
-  TEST_CODE_FOR_CPP,
-  TEST_CODE_FOR_GO,
-  TEST_CODE_FOR_JAVA,
-  TEST_CODE_FOR_JS,
-  TEST_CODE_FOR_PYTHON,
-  TEST_CODE_FOR_CSHARP,
-  TEST_CODE_FOR_TYPESCRIPT,
-  TEST_CODE_FOR_RUST,
-  TEST_CODE_FOR_SWIFT,
-  TEST_CODE_FOR_PHP,
-  TEST_CODE_FOR_RUBY,
-  TEST_CODE_FOR_KOTLIN,
   TEST_LANGUAGES,
   JUDGE0_LANGUAGE_IDS,
+  JUDGE0_LANGUAGE_MIN_CPU_TIME,
   MAX_POLL_ATTEMPTS,
   POLL_INTERVAL_MS,
   JUDGE0_IN_PROGRESS_STATUSES,
@@ -322,7 +311,9 @@ return result;
         }),
       );
 
-      const timeLimit = Math.min(question.constraints?.timeLimit ?? 2000, 15000) / 1000;
+      const requestedTimeLimit = Math.min(question.constraints?.timeLimit ?? 2000, 15000) / 1000;
+      const minimumTimeLimit = JUDGE0_LANGUAGE_MIN_CPU_TIME[language] ?? 0;
+      const timeLimit = Math.max(requestedTimeLimit, minimumTimeLimit);
       const memoryLimit = question.constraints?.memoryLimit ?? 256;
 
       const tokens = await this.submitBatchToJudge0(submissions, timeLimit, memoryLimit);
@@ -338,7 +329,8 @@ return result;
 
       return testCaseResults;
     } catch (error) {
-      return [{ result: false, logs: error.message }];
+      const message = error instanceof Error ? error.message : String(error);
+      return [{ result: false, logs: message }];
     }
   }
 
