@@ -1,3 +1,4 @@
+// refer LANGUAGE_REGISTRY.md for detailed explanation
 import {
   TEST_CODE_FOR_CPP,
   TEST_CODE_FOR_JAVA,
@@ -50,6 +51,62 @@ export interface LanguageConfig {
 ) => string;
   buildWrapper?: (wrapper: string, question: any) => string;
 }
+type GetDataType = (lang: string, type: string) => string;
+export type InvocationHandler = (call: string, outType: string, getDT: GetDataType) => string;
+
+export const OutputCategory = {
+  Primitive: 'primitive',
+  String: 'string',
+  Char: 'char',
+  Array: 'array',
+  TwoDArray: '2d_array',
+} as const;
+
+export type OutputCategory = (typeof OutputCategory)[keyof typeof OutputCategory];
+export function getOutputCategory(outType: string): OutputCategory {
+  if (outType === 'char') return OutputCategory.Char;
+  if (outType === 'string') return OutputCategory.String;
+  if (outType.startsWith('2d_array')) return OutputCategory.TwoDArray;
+  if (outType.startsWith('array')) return OutputCategory.Array;
+  return OutputCategory.Primitive;
+}
+
+export interface InvocationPrinter {
+  primitive: InvocationHandler;
+  string?: InvocationHandler;
+  char?: InvocationHandler;
+  array?: InvocationHandler;
+  twoDArray?: InvocationHandler;
+  types?: Partial<Record<string, InvocationHandler>>;
+  transformCall?: (call: string) => string;
+}
+
+export function createGetInvocation(printer: InvocationPrinter): LanguageConfig['getInvocation'] {
+  return (rawCall, outType, getDT) => {
+    const call = printer.transformCall ? printer.transformCall(rawCall) : rawCall;
+
+    if (printer.types && printer.types[outType]) {
+      return printer.types[outType]!(call, outType, getDT);
+    }
+
+    switch (getOutputCategory(outType)) {
+      case OutputCategory.Array:
+        if (printer.array) return printer.array(call, outType, getDT);
+        break;
+      case OutputCategory.TwoDArray:
+        if (printer.twoDArray) return printer.twoDArray(call, outType, getDT);
+        break;
+      case OutputCategory.Char:
+        if (printer.char) return printer.char(call, outType, getDT);
+        break;
+      case OutputCategory.String:
+        if (printer.string) return printer.string(call, outType, getDT);
+        break;
+    }
+
+    return printer.primitive(call, outType, getDT);
+  };
+}
 
 export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
   cpp: {
@@ -75,18 +132,16 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('cpp', p.type)} ${p.paramName}`).join(', '),
-    getInvocation: (call, outType, getDT) => {
-      if (outType === 'array_int' || outType === 'array_char') {
-        return `${getDT('cpp', outType)} arr = ${call}; cout<<"<logsOutputSeprator>";for(int i=0;i<arr.size();i++)cout<<arr[i]<<" ";`;
-      }
-      if (outType === 'char') {
-        return `
+    getInvocation: createGetInvocation({
+      array: (call, outType, getDT) =>
+        `${getDT('cpp', outType)} arr = ${call}; cout<<"<logsOutputSeprator>";for(int i=0;i<arr.size();i++)cout<<arr[i]<<" ";`,
+      char: (call) => `
         char value = ${call};
         cout<<"<logsOutputSeprator>"<<value;
-        `;
-      }
-      return `${getDT('cpp', outType)} value = ${call}; cout<<"<logsOutputSeprator>"<<value;`;
-    }
+        `,
+      primitive: (call, outType, getDT) =>
+        `${getDT('cpp', outType)} value = ${call}; cout<<"<logsOutputSeprator>"<<value;`,
+    }),
   },
   java: {
     wrapper: TEST_CODE_FOR_JAVA,
@@ -111,18 +166,16 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('java', p.type)} ${p.paramName}`).join(', '),
-    getInvocation: (call, outType, getDT) => {
-      if (outType === 'array_int' || outType === 'array_char') {
-        return `${getDT('java', outType)} arr = ${call}; System.out.print("<logsOutputSeprator>");for(int i=0;i<arr.length;i++)System.out.print(arr[i]+" ");`;
-      }
-      if (outType === 'char') {
-        return `
+    getInvocation: createGetInvocation({
+      array: (call, outType, getDT) =>
+        `${getDT('java', outType)} arr = ${call}; System.out.print("<logsOutputSeprator>");for(int i=0;i<arr.length;i++)System.out.print(arr[i]+" ");`,
+      char: (call) => `
         char value = ${call};
         System.out.print("<logsOutputSeprator>"+value);
-        `;
-      }
-      return `${getDT('java', outType)} value = ${call}; System.out.print("<logsOutputSeprator>"+value);`;
-    }
+        `,
+      primitive: (call, outType, getDT) =>
+        `${getDT('java', outType)} value = ${call}; System.out.print("<logsOutputSeprator>"+value);`,
+    }),
   },
   python: {
     wrapper: TEST_CODE_FOR_PYTHON,
@@ -133,12 +186,10 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       return JSON.stringify(val);
     },
     formatParameters: (params) => params.map(p => p.paramName).join(', '),
-    getInvocation: (call, outType) => {
-      if (outType === 'array_int' || outType === 'array_char') {
-        return `arr=${call};\nprint("<logsOutputSeprator>",end='');\nfor el in arr:\n\tprint(el,end=' ');`;
-      }
-      return `value=${call};\nprint("<logsOutputSeprator>",value,end='',sep='');`;
-    }
+    getInvocation: createGetInvocation({
+      array: (call) => `arr=${call};\nprint("<logsOutputSeprator>",end='');\nfor el in arr:\n\tprint(el,end=' ');`,
+      primitive: (call) => `value=${call};\nprint("<logsOutputSeprator>",value,end='',sep='');`,
+    }),
   },
   javascript: {
     wrapper: TEST_CODE_FOR_JS,
@@ -146,12 +197,10 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
     dataTypeMap: {},
     formatArgument: (type, val) => JSON.stringify(val),
     formatParameters: (params) => params.map(p => p.paramName).join(', '),
-    getInvocation: (call, outType) => {
-      if (outType === 'array_int' || outType === 'array_char') {
-        return `let arr = ${call}; if(arr) console.log("<logsOutputSeprator>",...arr);else console.log("<logsOutputSeprator>",arr);`;
-      }
-      return `let value = ${call}; console.log("<logsOutputSeprator>",value);`;
-    }
+    getInvocation: createGetInvocation({
+      array: (call) => `let arr = ${call}; if(arr) console.log("<logsOutputSeprator>",...arr);else console.log("<logsOutputSeprator>",arr);`,
+      primitive: (call) => `let value = ${call}; console.log("<logsOutputSeprator>",value);`,
+    }),
   },
   typescript: {
     wrapper: TEST_CODE_FOR_TYPESCRIPT,
@@ -169,12 +218,10 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
     },
     formatArgument: (type, val) => JSON.stringify(val),
     formatParameters: (params, getDT) => params.map(p => `${p.paramName}: ${getDT('typescript', p.type)}`).join(', '),
-    getInvocation: (call, outType) => {
-      if (outType === 'array_int' || outType === 'array_char') {
-        return `let arr = ${call}; if(arr) console.log("<logsOutputSeprator>",...arr);else console.log("<logsOutputSeprator>",arr);`;
-      }
-      return `let value = ${call}; console.log("<logsOutputSeprator>",value);`;
-    }
+    getInvocation: createGetInvocation({
+      array: (call) => `let arr = ${call}; if(arr) console.log("<logsOutputSeprator>",...arr);else console.log("<logsOutputSeprator>",arr);`,
+      primitive: (call) => `let value = ${call}; console.log("<logsOutputSeprator>",value);`,
+    }),
   },
   go: {
     wrapper: TEST_CODE_FOR_GO,
@@ -199,18 +246,14 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       return `${JSON.stringify(val)}`;
     },
     formatParameters: (params, getDT) => params.map(p => `${p.paramName} ${getDT('go', p.type)}`).join(', '),
-    getInvocation: (call, outType) => {
-      if (outType === 'array_int' || outType === 'array_char') {
-        return `arr := ${call}; fmt.Print("<logsOutputSeprator>"); for i := 0; i < len(arr); i++ { fmt.Print(arr[i], " ") }`;
-      }
-      if (outType === 'char') {
-        return `
+    getInvocation: createGetInvocation({
+      array: (call) => `arr := ${call}; fmt.Print("<logsOutputSeprator>"); for i := 0; i < len(arr); i++ { fmt.Print(arr[i], " ") }`,
+      char: (call) => `
         value := ${call}
         fmt.Printf("<logsOutputSeprator>%c", value)
-        `;
-      }
-      return `value := ${call}; fmt.Printf("<logsOutputSeprator>%v\\n", value)`;
-    }
+        `,
+      primitive: (call) => `value := ${call}; fmt.Printf("<logsOutputSeprator>%v\\n", value)`,
+    }),
   },
   csharp: {
     wrapper: TEST_CODE_FOR_CSHARP,
@@ -235,18 +278,16 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('csharp', p.type)} ${p.paramName}`).join(', '),
-    getInvocation: (call, outType, getDT) => {
-      if (outType === 'array_int' || outType === 'array_char') {
-        return `${getDT('csharp', outType)} arr = ${call}; Console.Write("<logsOutputSeprator>");for(int i=0;i<arr.Length;i++)Console.Write(arr[i]+" ");`;
-      }
-      if (outType === 'char') {
-        return `
+    getInvocation: createGetInvocation({
+      array: (call, outType, getDT) =>
+        `${getDT('csharp', outType)} arr = ${call}; Console.Write("<logsOutputSeprator>");for(int i=0;i<arr.Length;i++)Console.Write(arr[i]+" ");`,
+      char: (call) => `
         char value = ${call};
         Console.Write("<logsOutputSeprator>"+value);
-        `;
-      }
-      return `${getDT('csharp', outType)} value = ${call}; Console.Write("<logsOutputSeprator>"+value);`;
-    }
+        `,
+      primitive: (call, outType, getDT) =>
+        `${getDT('csharp', outType)} value = ${call}; Console.Write("<logsOutputSeprator>"+value);`,
+    }),
   },
   rust: {
     wrapper: TEST_CODE_FOR_RUST,
@@ -303,7 +344,10 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       }
     },
     formatParameters: (params, getDT) => params.map(p => `${p.paramName}: ${getDT('rust', p.type)}`).join(', '),
-    getInvocation: (call) => `let value = ${call}; print!("<logsOutputSeprator>{}", value);`
+    // Rust's invocation never branched on outType - preserved as-is.
+    getInvocation: createGetInvocation({
+      primitive: (call) => `let value = ${call}; print!("<logsOutputSeprator>{}", value);`,
+    }),
   },
   php: {
     wrapper: TEST_CODE_FOR_PHP,
@@ -348,9 +392,8 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       params
         .map(p => `${getDT('php', p.type)} $${p.paramName}`)
         .join(', '),
-    getInvocation: (call, outType) => {
-      if (outType === 'array_int' || outType === 'array_char') {
-        return `
+    getInvocation: createGetInvocation({
+      array: (call) => `
         $arr = ${call};
         echo "<logsOutputSeprator>";
         if ($arr !== null) {
@@ -358,11 +401,8 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
                 echo $el . " ";
             }
         }
-        `;
-      }
-
-      if (outType === '2d_array_int' || outType === '2d_array_char') {
-        return `
+        `,
+      twoDArray: (call) => `
         $arr = ${call};
         echo "<logsOutputSeprator>";
         if ($arr !== null) {
@@ -373,21 +413,18 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
                 echo "\\n";
             }
         }
-        `;
-      }
-
-      if (outType === 'boolean') {
-        return `
+        `,
+      types: {
+        boolean: (call) => `
         $value = ${call};
         echo "<logsOutputSeprator>" . ($value ? "true" : "false");
-        `;
-      }
-
-      return `
+        `,
+      },
+      primitive: (call) => `
         $value = ${call};
         echo "<logsOutputSeprator>" . $value;
-        `;
-    }
+        `,
+    }),
   },
   kotlin: {
     wrapper: TEST_CODE_FOR_KOTLIN,
@@ -447,33 +484,19 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
         .map(p => `${p.paramName}: ${getDT('kotlin', p.type)}`)
         .join(', '),
 
-    getInvocation: (call, outType, getDT) => {
-
-      if (outType === 'array_int') {
-        return `
+    getInvocation: createGetInvocation({
+      array: (call, outType, getDT) => `
 val arr: ${getDT('kotlin', outType)} = ${call}
 print("<logsOutputSeprator>")
 for(el in arr){
     print("$el ")
 }
-`;
-      }
-
-      if (outType === 'array_char') {
-        return `
-val arr: ${getDT('kotlin', outType)} = ${call}
-print("<logsOutputSeprator>")
-for(el in arr){
-    print("$el ")
-}
-`;
-      }
-
-      return `
+`,
+      primitive: (call, outType, getDT) => `
 val value: ${getDT('kotlin', outType)} = ${call}
 print("<logsOutputSeprator>$value")
-`;
-    }
+`,
+    }),
   },
   ruby: {
   wrapper: TEST_CODE_FOR_RUBY,
@@ -496,21 +519,17 @@ print("<logsOutputSeprator>$value")
   formatParameters: (params) =>
     params.map(p => p.paramName).join(', '),
 
-  getInvocation: (call, outType) => {
-
-    if (outType === 'array_int' || outType === 'array_char') {
-      return `
+  getInvocation: createGetInvocation({
+    array: (call) => `
 arr = ${call}
 print "<logsOutputSeprator>"
 arr.each { |el| print "#{el} " }
-`;
-    }
-
-    return `
+`,
+    primitive: (call) => `
 value = ${call}
 print "<logsOutputSeprator>#{value}"
-`;
-  }
+`,
+  }),
 },
  swift: {
       wrapper: TEST_CODE_FOR_SWIFT,
@@ -563,27 +582,19 @@ print "<logsOutputSeprator>#{value}"
           .map(p => `${p.paramName}: ${getDT('swift', p.type)}`)
           .join(', '),
 
-      getInvocation: (call, outType) => {
-        if (outType === 'array_int' || outType === 'array_char') {
-                  return `
+      getInvocation: createGetInvocation({
+        array: (call) => `
         let arr = ${call}
         print("<logsOutputSeprator>", terminator: "")
         for el in arr {
             print(el, terminator: " ")
         }
-        `;
-                }
-        if (outType === 'char') {
-          return `
-          let value = ${call}
-          print("<logsOutputSeprator>\\(value)", terminator:"")
-          `;  
-        }
-                return `
+        `,
+        primitive: (call) => `
         let value = ${call}
         print("<logsOutputSeprator>\\(value)", terminator: "")
-        `;
-              },
+        `,
+      }),
       formatInvocationArgument: (param, value) =>
     `${param.paramName}: ${value}`,
     },
@@ -657,39 +668,31 @@ print "<logsOutputSeprator>#{value}"
 
       return result.join(', ');
     },
-    getInvocation: (call, outType) => {
 
-              if (outType === 'array_int') {
-                return `
+    getInvocation: createGetInvocation({
+      types: {
+        array_int: (call) => `
         int* arr = ${call};
         printf("<logsOutputSeprator>");
-        `;
-              }
-
-              if (outType === 'string') {
-                return `
+        `,
+        string: (call) => `
         char* value = ${call};
         printf("<logsOutputSeprator>%s", value);
-        `;
-              }
-
-              if (outType === 'boolean') {
-                return `
+        `,
+        boolean: (call) => `
         bool value = ${call};
         printf("<logsOutputSeprator>%s", value ? "true" : "false");
-        `;
-              }
-              if (outType === 'char') {
-                return `
+        `,
+        char: (call) => `
         char value = ${call};
         printf("<logsOutputSeprator>%c", value);
-        `;
-              }
-              return `
+        `,
+      },
+      primitive: (call) => `
         int value = ${call};
         printf("<logsOutputSeprator>%d", value);
-        `;
-    },
+        `,
+    }),
     buildInvocation: (inputTypes, testCaseInput, outputType, testCaseOutput) => {
       let declarations = [];
       let argumentsList = [];
@@ -896,33 +899,26 @@ print "<logsOutputSeprator>#{value}"
         .map(p => `${p.paramName}: ${getDT("scala", p.type)}`)
         .join(", "),
 
-    getInvocation: (call, outType) => {
-
-      if (outType === "array_int" || outType === "array_char") {
-        return `
+    getInvocation: createGetInvocation({
+      array: (call) => `
         val arr = ${call}
         print("<logsOutputSeprator>")
         arr.foreach(x => print(s"$x "))
-        `;
-      }
-
-      if (outType === "2d_array_int" || outType === "2d_array_char") {
-        return `
+        `,
+      twoDArray: (call) => `
         val arr = ${call}
         print("<logsOutputSeprator>")
         arr.foreach(row => {
           row.foreach(x => print(s"$x "))
           println()
         })
-        `;
-      }
-
-      return `
+        `,
+      primitive: (call) => `
       val value = ${call}
       print("<logsOutputSeprator>")
       print(value)
-      `;
-    }
+      `,
+    }),
   },
   elixir: {
     wrapper: TEST_CODE_FOR_ELIXIR,
@@ -970,28 +966,26 @@ print "<logsOutputSeprator>#{value}"
     formatParameters: (params) =>
       params.map(p => p.paramName).join(", "),
 
-    getInvocation: (call, outType) => {
-      const elixirCall = call.replace(/^solution\(/, 'Solution.solution(');
-
-      if (
-        outType === "array_int" || 
-        outType === "array_char" || 
-        outType === "2d_array_int" || 
-        outType === "2d_array_char"
-      ) {
-        return `
-          arr = ${elixirCall}
+    getInvocation: createGetInvocation({
+      transformCall: (call) => call.replace(/^solution\(/, 'Solution.solution('),
+      // array_int / array_char / 2d_array_int / 2d_array_char were all
+      // printed identically via inspect(), so both categories share one fn.
+      array: (call) => `
+          arr = ${call}
           IO.write("<logsOutputSeprator>")
           IO.write(inspect(arr, limit: :infinity, charlists: :as_lists))
-          `;
-      }
-
-      return `
-        value = ${elixirCall}
+          `,
+      twoDArray: (call) => `
+          arr = ${call}
+          IO.write("<logsOutputSeprator>")
+          IO.write(inspect(arr, limit: :infinity, charlists: :as_lists))
+          `,
+      primitive: (call) => `
+        value = ${call}
         IO.write("<logsOutputSeprator>")
         IO.write(to_string(value))
-        `;
-    }
+        `,
+    }),
   },
   erlang: {
     wrapper: TEST_CODE_FOR_ERLANG,
@@ -1046,73 +1040,59 @@ print "<logsOutputSeprator>#{value}"
     formatParameters: (params) =>
       params.map(p => p.paramName).join(", "),
 
-    getInvocation: (call, outType) => {
-
-      if (outType === "array_int") {
-        return `
-Arr = ${call},
-io:format("<logsOutputSeprator>"),
-lists:foreach(fun(E) ->
-    io:format("~p ", [E])
-end, Arr)
-`;
-      }
-
-      if (outType === "array_char") {
-        return `
-Arr = ${call},
-io:format("<logsOutputSeprator>"),
-lists:foreach(fun(E) ->
-    io:format("~c", [E])
-end, Arr)
-`;
-      }
-
-      if (outType === "2d_array_int") {
-        return `
-Matrix = ${call},
-io:format("<logsOutputSeprator>"),
-lists:foreach(fun(Row) ->
-    lists:foreach(fun(E) ->
-        io:format("~p ", [E])
-    end, Row),
-    io:format("~n")
-end, Matrix)
-`;
-      }
-
-      if (outType === "2d_array_char") {
-        return `
-Matrix = ${call},
-io:format("<logsOutputSeprator>"),
-lists:foreach(fun(Row) ->
-    lists:foreach(fun(E) ->
-        io:format("~c", [E])
-    end, Row),
-    io:format("~n")
-end, Matrix)
-`;
-      }
-
-      if (outType === "char") {
-        return `
-Value = ${call},
-io:format("<logsOutputSeprator>~c",[Value])
-`;
-      }
-
-      if (outType === "string") {
-        return `
-Value = ${call},
-io:format("<logsOutputSeprator>~s",[Value])
-`;
-      }
-
-      return `
-Value = ${call},
-io:format("<logsOutputSeprator>~p",[Value])
-`;
-    }
+    // Erlang prints each exact output type differently (array_int vs
+    // array_char, 2d_array_int vs 2d_array_char, etc.), so these are
+    // expressed as exact-type overrides rather than shared category fns.
+    getInvocation: createGetInvocation({
+      types: {
+        array_int: (call) => `
+        Arr = ${call},
+        io:format("<logsOutputSeprator>"),
+        lists:foreach(fun(E) ->
+            io:format("~p ", [E])
+        end, Arr)
+          `,
+        array_char: (call) => `
+          Arr = ${call},
+          io:format("<logsOutputSeprator>"),
+          lists:foreach(fun(E) ->
+              io:format("~c", [E])
+          end, Arr)
+          `,
+        '2d_array_int': (call) => `
+          Matrix = ${call},
+          io:format("<logsOutputSeprator>"),
+          lists:foreach(fun(Row) ->
+              lists:foreach(fun(E) ->
+                  io:format("~p ", [E])
+              end, Row),
+              io:format("~n")
+          end, Matrix)
+                    `,
+                  '2d_array_char': (call) => `
+          Matrix = ${call},
+          io:format("<logsOutputSeprator>"),
+          lists:foreach(fun(Row) ->
+              lists:foreach(fun(E) ->
+          io:format("~c", [E])
+            end, Row),
+            io:format("~n")
+              end, Matrix)
+            `,
+        char: (call) => `
+            Value = ${call},
+            io:format("<logsOutputSeprator>~c",[Value])
+          `,
+        string: (call) => `
+          Value = ${call},
+          io:format("<logsOutputSeprator>~s",[Value])
+          `,
+      },
+      primitive: (call) => `
+        Value = ${call},
+        io:format("<logsOutputSeprator>~p",[Value])
+        `,
+    }),
   }
 
 };
