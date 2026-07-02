@@ -108,6 +108,27 @@ export function createGetInvocation(printer: InvocationPrinter): LanguageConfig[
   };
 }
 
+// Converts a JS number to a safe float literal for a target language.
+//  
+//  Problem: JavaScript's String(2.0) and JSON.stringify(2.0) both produce "2"
+//  (no decimal point). In statically-typed languages this causes compile errors:
+//  - Kotlin/Rust: integer literal "2" won't typecheck against Double/f64
+//  - Java/C/C++/C#/Scala: "2.5" is a double literal, causes lossy-conversion
+//  error when assigned to a float parameter — needs "2.5f"
+//  
+//  @param val    The numeric value to format.
+//  @param suffix Language-specific suffix: 'f' for Java/C/C++/C#/Scala float,
+//  '' for Go/Kotlin/Rust/Swift/Python double/f64/float.
+//  
+function toFloatLiteral(val: number, suffix = ''): string {
+  const s = String(val);
+  // Preserve existing decimal or scientific notation; only add ".0" when the
+  // string looks like a bare integer (no dot, no "e").
+  //example: "5"->"5.0","2.5"->"2.5","string"->"string"
+  const withDecimal = s.includes('.') || s.includes('e') ? s : `${s}.0`;
+  return `${withDecimal}${suffix}`;
+}
+
 export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
   cpp: {
     wrapper: TEST_CODE_FOR_CPP,
@@ -129,6 +150,9 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       if (type === 'array_int') return `vector<int>{${val.join(',')}}`;
       if (type === 'array_char') return `vector<char>{${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
       if (type === 'char') return `'${val}'`;
+      // "2.5" is a double literal in C++ — float params need the 'f' suffix.
+      // String(2.0) → "2", so toFloatLiteral ensures the decimal is present.
+      if (type === 'float') return toFloatLiteral(val, 'f');
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('cpp', p.type)} ${p.paramName}`).join(', '),
@@ -163,6 +187,9 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       if (type === 'array_int') return `new int[] {${val.join(',')}}`;
       if (type === 'array_char') return `new char[] {${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
       if (type === 'char') return `'${val}'`;
+      // Java: "2.5" is a double literal — float params/variables need the 'f'
+      // suffix to avoid "possible lossy conversion from double to float" error.
+      if (type === 'float') return toFloatLiteral(val, 'f');
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('java', p.type)} ${p.paramName}`).join(', '),
@@ -243,6 +270,10 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       if (type === 'array_int') return `[]int{${val.join(',')}}`;
       if (type === 'array_char') return `[]rune{${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
       if (type === 'char') return `'${val}'`;
+      // Go allows float64 x = 2, so adding .0 isn't required.
+      // However, generating 2.0 makes it clear the value is intended to be a float.
+      // The helper also safely preserves values already represented with decimals or scientific notation instead of producing invalid literals.
+      if (type === 'float') return toFloatLiteral(val);
       return `${JSON.stringify(val)}`;
     },
     formatParameters: (params, getDT) => params.map(p => `${p.paramName} ${getDT('go', p.type)}`).join(', '),
@@ -275,6 +306,10 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
       if (type === 'array_int') return `new int[] {${val.join(',')}}`;
       if (type === 'array_char') return `new char[] {${JSON.stringify(val).replace(/^\[|\]$/g, '').replace(/"/g, "'")}}`;
       if (type === 'char') return `'${val}'`;
+      // In C#, literals like 2.5 and 3.14 are double by default.
+      // A method or variable expecting a float requires literals like 2.5f or 3.14f.
+      // toFloatLiteral(val, "f") ensures the generated code always produces valid float literals by adding both .0 (when needed) and the f suffix.
+      if (type === 'float') return toFloatLiteral(val, 'f');
       return JSON.stringify(val);
     },
     formatParameters: (params, getDT) => params.map(p => `${getDT('csharp', p.type)} ${p.paramName}`).join(', '),
@@ -312,7 +347,8 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
           return String(val);
 
         case 'float':
-          return String(val);
+          // String(2.0) → "2"; Rust won't compile bare "2" as an f64 literal.
+          return toFloatLiteral(val);
 
         case 'boolean':
           return val ? 'true' : 'false';
@@ -476,6 +512,9 @@ export const LANGUAGE_REGISTRY: Record<string, LanguageConfig> = {
         return `'${val}'`;
       }
 
+      // Kotlin: "2" is an Int literal and won't compile for a Double parameter.
+      if (type === 'float') return toFloatLiteral(val);
+
       return JSON.stringify(val);
     },
 
@@ -631,6 +670,9 @@ print "<logsOutputSeprator>#{value}"
       if (type === 'array_char') {
         return `(char[]){${val.map(ch => `'${ch}'`).join(',')}}`;
       }
+      // C: "2.5" is a double literal — float params need the 'f' suffix to
+      // avoid implicit narrowing warnings (-Wdouble-promotion / -Wconversion).
+      if (type === 'float') return toFloatLiteral(val, 'f');
       return JSON.stringify(val);
     },
 
@@ -686,6 +728,12 @@ print "<logsOutputSeprator>#{value}"
         char: (call) => `
         char value = ${call};
         printf("<logsOutputSeprator>%c", value);
+        `,
+        // Without this, float output falls through to the primitive handler
+        // which uses %d (integer format) and prints garbage.
+        float: (call) => `
+        float value = ${call};
+        printf("<logsOutputSeprator>%f", value);
         `,
       },
       primitive: (call) => `
@@ -760,6 +808,9 @@ print "<logsOutputSeprator>#{value}"
           argumentsList.push(`'${value}'`);
         } else if (param.type === 'string') {
           argumentsList.push(JSON.stringify(value));
+        } else if (param.type === 'float') {
+          // C: "2.5" is a double literal - float args need the 'f' suffix.
+          argumentsList.push(toFloatLiteral(value, 'f'));
         } else {
           argumentsList.push(JSON.stringify(value));
         }
@@ -855,8 +906,13 @@ print "<logsOutputSeprator>#{value}"
 
     formatArgument: (type, val) => {
 
-      if (type === "int" || type === "float") {
+      if (type === "int") {
         return String(val);
+      }
+
+      // Scala: "2" is an Int literal; Float params require "2.0f" to compile.
+      if (type === "float") {
+        return toFloatLiteral(val, 'f');
       }
 
       if (type === "boolean") {
